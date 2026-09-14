@@ -1,0 +1,31 @@
+{
+  "name": "@dev-tools/vulnscan",
+  "version": "1.0.0",
+  "description": "Security vulnerability scanner for projects",
+  "main": "lib/scanner.js",
+  "bin": {
+    "vulnscan": "./bin/index.js"
+  },
+  "scripts": {
+    "start": "node bin/index.js",
+    "scan": "node bin/index.js --path ./"
+  },
+  "dependencies": {
+    "commander": "^11.0.0",
+    "inquirer": "^8.2.5",
+    "chalk": "^4.1.2",
+    "fs-extra": "^11.1.1",
+    "axios": "^1.6.0",
+    "semver": "^7.5.4",
+    "table": "^6.8.1"
+  },
+  "devDependencies": {
+    "node-gyp": "^9.4.0"
+  },
+  "keywords": ["cli", "security", "vulnerability", "scanner", "audit"],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

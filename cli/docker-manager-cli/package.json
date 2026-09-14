@@ -1,0 +1,13 @@
+{
+  "name": "docker-manager-cli",
+  "version": "1.0.0",
+  "description": "CLI tool to manage Docker Compose services",
+  "main": "bin/index.js",
+  "type": "module",
+  "bin": {
+    "docker-manager": "./bin/index.js"
+  },
+  "scripts": {
+    "start": "node bin/index.js"
+  }
+}

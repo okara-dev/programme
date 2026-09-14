@@ -1,0 +1,25 @@
+{
+  "name": "pdf-converter-cli",
+  "version": "1.0.0",
+  "description": "CLI tool to convert documents to PDF format",
+  "main": "bin/index.js",
+  "type": "module",
+  "bin": {
+    "pdf-converter": "./bin/index.js"
+  },
+  "scripts": {
+    "start": "node bin/index.js",
+    "test": "node --test"
+  },
+  "keywords": ["cli", "pdf", "converter", "document", "generate"],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "pdfkit": "^0.14.0",
+    "html-pdf": "^3.0.1",
+    "markdown-pdf": "^11.0.0"
+  }
+}

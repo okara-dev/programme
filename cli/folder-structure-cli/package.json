@@ -1,0 +1,20 @@
+{
+  "name": "folder-structure-cli",
+  "version": "1.0.0",
+  "description": "CLI tool to create folder structures from text input",
+  "main": "bin/index.js",
+  "type": "module",
+  "bin": {
+    "folder": "./bin/index.js"
+  },
+  "scripts": {
+    "start": "node bin/index.js",
+    "test": "node --test"
+  },
+  "keywords": ["cli", "folder", "structure", "generator"],
+  "author": "Onur Kara",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

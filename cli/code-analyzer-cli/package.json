@@ -1,0 +1,24 @@
+{
+  "name": "code-analyzer-cli",
+  "version": "1.0.0",
+  "description": "CLI tool to analyze code quality, complexity, dependencies and generate reports",
+  "main": "bin/index.js",
+  "type": "module",
+  "bin": {
+    "code-analyzer": "./bin/index.js"
+  },
+  "scripts": {
+    "start": "node bin/index.js",
+    "test": "node --test"
+  },
+  "keywords": ["cli", "code", "analyzer", "metrics", "quality", "complexity"],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "glob": "^10.3.0",
+    "ignore": "^5.2.4"
+  }
+}

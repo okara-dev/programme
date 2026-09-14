@@ -1,0 +1,38 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- Node / JS ----------
+node_modules/
+dist/
+build/
+.next/
+out/
+npm-debug.log*
+yarn-error.log*
+
+# ---------- Secrets ----------
+.env
+.env.*
+!.env.example
+**/key.json
+**/config.json
+!**/config.example.json
+
+# ---------- Runtime / DBs ----------
+*.log
+*.db
+*.sqlite3
+
+# ---------- OS / Editor ----------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
