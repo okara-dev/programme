@@ -24,6 +24,7 @@ yarn-error.log*
 !.env.example
 **/key.json
 **/config.json
+**/ratings.json
 !**/config.example.json
 
 # ---------- Runtime / DBs ----------
