@@ -1,0 +1,25 @@
+{
+  "name": "doc-analyzer-cli",
+  "version": "1.0.0",
+  "description": "CLI to analyze and summarize documents using Groq AI",
+  "main": "bin/index.js",
+  "type": "module",
+  "bin": {
+    "analyze": "./bin/index.js"
+  },
+  "scripts": {
+    "start": "node bin/index.js"
+  },
+  "keywords": ["cli", "document", "analyzer", "ai", "groq", "summary"],
+  "author": "Onur Kara",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "pdf-parse": "^1.1.1",
+    "mammoth": "^1.7.0",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.5"
+  }
+}

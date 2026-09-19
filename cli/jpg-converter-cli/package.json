@@ -1,0 +1,22 @@
+{
+  "name": "imgconvert-cli",
+  "version": "1.0.0",
+  "description": "Simple CLI to convert images between JPG and PNG",
+  "main": "bin/index.js",
+  "type": "module",
+  "bin": {
+    "imgconvert": "./bin/index.js"
+  },
+  "scripts": {
+    "start": "node bin/index.js"
+  },
+  "keywords": ["cli", "image", "converter", "jpg", "png", "sharp"],
+  "author": "Onur Kara",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "sharp": "^0.33.0"
+  }
+}

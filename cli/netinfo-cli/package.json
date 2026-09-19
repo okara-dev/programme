@@ -1,16 +1,16 @@
 {
-  "name": "code-analyzer-cli",
+  "name": "netinfo-cli",
   "version": "1.0.0",
-  "description": "Simple CLI tool to analyze code quality",
+  "description": "Network info, port scanner and diagnostics CLI tool",
   "main": "bin/index.js",
   "type": "module",
   "bin": {
-    "code-analyzer": "./bin/index.js"
+    "netinfo": "./bin/index.js"
   },
   "scripts": {
     "start": "node bin/index.js"
   },
-  "keywords": ["cli", "code", "analyzer", "quality"],
+  "keywords": ["cli", "network", "port", "scanner", "ping", "dns"],
   "author": "Onur Kara",
   "license": "MIT",
   "engines": {

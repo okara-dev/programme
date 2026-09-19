@@ -1,18 +1,15 @@
 # 🔍 Code Analyzer CLI
 
-Analyze, search, and improve your code quality!
+Ein einfaches CLI-Tool zur Analyse der Code-Qualität.
 
 ## 📦 Installation
 
 ```bash
-# Clone or download the project
+# In den Projektordner wechseln
 cd code-analyzer
 
-# Install dependencies
-npm install
-
-# Install globally (optional)
+# Global installieren
 npm link
 
-# Or run directly
-npm start
+# Oder lokal starten
+node bin/index.js

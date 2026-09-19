@@ -22,7 +22,8 @@ yarn-error.log*
 .env
 .env.*
 !.env.example
-**/key.json
+**/package-lock.json
+**/yarn.lock
 **/config.json
 **/ratings.json
 !**/config.example.json

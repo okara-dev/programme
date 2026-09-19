@@ -1,382 +1,446 @@
 import fs from 'fs';
 import path from 'path';
-import { glob } from 'glob';
-import ignore from 'ignore';
 
-export class Analyzer {
-  constructor(targetPath) {
-    this.targetPath = path.resolve(targetPath);
-    this.ignorePatterns = [
-      'node_modules/**',
-      '.git/**',
-      'dist/**',
-      'build/**',
-      '*.min.js',
-      '*.bundle.js',
-      '__pycache__/**',
-      '*.pyc',
-      '.venv/**',
-      'venv/**',
-      'env/**'
-    ];
-  }
+// Dateitypen die analysiert werden
+const CODE_EXTENSIONS = [
+  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs',
+  '.py', '.java', '.c', '.cpp', '.h', '.hpp', '.cs',
+  '.rb', '.go', '.rs', '.php', '.swift', '.kt', '.dart',
+  '.html', '.css', '.scss', '.sass', '.less', '.vue', '.svelte',
+  '.json', '.xml', '.yaml', '.yml', '.toml',
+  '.sh', '.bash', '.ps1', '.bat',
+  '.sql', '.md'
+];
 
-  isCodeFile(ext) {
-    const codeExtensions = [
-      '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.c', '.cpp', '.cc', '.cxx',
-      '.h', '.hpp', '.cs', '.rb', '.go', '.rs', '.php', '.swift', '.kt', '.dart',
-      '.lua', '.r', '.pl', '.pm', '.html', '.htm', '.css', '.scss', '.sass', '.less',
-      '.vue', '.svelte', '.astro', '.json', '.xml', '.yaml', '.yml', '.toml',
-      '.ini', '.cfg', '.conf', '.properties', '.env', '.sh', '.bash', '.zsh',
-      '.ps1', '.bat', '.cmd', '.sql', '.sqlite', '.md', '.markdown', '.txt',
-      '.graphql', '.gql', '.proto', '.thrift'
-    ];
-    return codeExtensions.includes(ext);
-  }
+// Ordner die ignoriert werden
+const IGNORE_DIRS = [
+  'node_modules', '.git', 'dist', 'build', '.next',
+  '__pycache__', '.venv', 'venv', 'env', '.idea', '.vscode',
+  'coverage', '.cache', 'tmp', 'temp'
+];
 
-  async getFiles() {
-    const ig = ignore().add(this.ignorePatterns);
-    const allFiles = await glob(path.join(this.targetPath, '**/*'), {
-      nodir: true,
-      dot: true,
-      absolute: true
-    });
+// Dateien die ignoriert werden (exakte Namen)
+const IGNORE_FILES = [
+  'package-lock.json',
+  'yarn.lock',
+  'pnpm-lock.yaml',
+  'composer.lock',
+  'Gemfile.lock',
+  'poetry.lock',
+  'Pipfile.lock',
+  'Cargo.lock',
+  'bun.lockb',
+  'Dockerfile',
+  'Dockerfile.dev',
+  'Dockerfile.prod',
+  'docker-compose.yml',
+  'docker-compose.yaml',
+  'docker-compose.dev.yml',
+  'docker-compose.prod.yml',
+  '.dockerignore'
+];
 
-    const files = [];
-    for (const file of allFiles) {
-      const relativePath = path.relative(process.cwd(), file);
-      if (!ig.ignores(relativePath)) {
-        const ext = path.extname(file);
-        if (this.isCodeFile(ext)) {
-          files.push(file);
+// Datei-Muster die ignoriert werden (enthält)
+const IGNORE_PATTERNS = [
+  'Dockerfile',
+  'docker-compose',
+  '.dockerignore'
+];
+
+/**
+ * Hauptfunktion: Analysiert den Code im angegebenen Pfad
+ */
+export async function analyzeCode(targetPath) {
+  const files = getAllFiles(targetPath);
+
+  // Statistiken sammeln
+  let totalLines = 0;
+  let commentLines = 0;
+  let codeLines = 0;
+  let blankLines = 0;
+  let functions = 0;
+  let largeFiles = [];
+  let complexFunctions = [];
+  let fileCount = 0;
+
+  for (const file of files) {
+    try {
+      const content = fs.readFileSync(file, 'utf8');
+      const lines = content.split('\n');
+      const stats = fs.statSync(file);
+
+      fileCount++;
+      totalLines += lines.length;
+
+      // Kommentare und Leerzeilen zählen
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (isComment(trimmed)) {
+          commentLines++;
+        } else if (trimmed === '') {
+          blankLines++;
+        } else {
+          codeLines++;
         }
       }
-    }
-    return files;
-  }
 
-  getLanguage(ext) {
-    const languages = {
-      '.js': 'JavaScript', '.jsx': 'React', '.ts': 'TypeScript', '.tsx': 'React+TypeScript',
-      '.py': 'Python', '.java': 'Java', '.c': 'C', '.cpp': 'C++', '.cs': 'C#',
-      '.rb': 'Ruby', '.go': 'Go', '.rs': 'Rust', '.php': 'PHP', '.swift': 'Swift',
-      '.kt': 'Kotlin', '.dart': 'Dart', '.html': 'HTML', '.css': 'CSS',
-      '.scss': 'SCSS', '.json': 'JSON', '.yaml': 'YAML', '.yml': 'YAML',
-      '.md': 'Markdown', '.sh': 'Shell', '.sql': 'SQL', '.env': 'Environment'
-    };
-    return languages[ext] || ext || 'Unknown';
-  }
+      // Funktionen zählen
+      const fileFunctions = countFunctions(content);
+      functions += fileFunctions;
 
-  async getMetrics(onProgress = null) {
-    const files = await this.getFiles();
-    const metrics = {
-      files: 0,
-      totalLines: 0,
-      codeLines: 0,
-      commentLines: 0,
-      blankLines: 0,
-      functions: 0,
-      classes: 0,
-      imports: 0,
-      languages: {},
-      largestFiles: []
-    };
-
-    const fileStats = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      try {
-        const content = fs.readFileSync(file, 'utf8');
-        const stats = fs.statSync(file);
-        const lines = content.split('\n');
-        const fileMetrics = this.analyzeFile(content);
-
-        metrics.files++;
-        metrics.totalLines += lines.length;
-        metrics.codeLines += fileMetrics.codeLines;
-        metrics.commentLines += fileMetrics.commentLines;
-        metrics.blankLines += fileMetrics.blankLines;
-        metrics.functions += fileMetrics.functions;
-        metrics.classes += fileMetrics.classes;
-        metrics.imports += fileMetrics.imports;
-
-        const ext = path.extname(file);
-        const lang = this.getLanguage(ext);
-        metrics.languages[lang] = (metrics.languages[lang] || 0) + 1;
-
-        fileStats.push({
+      // Große Dateien finden (> 500 Zeilen)
+      if (lines.length > 500) {
+        largeFiles.push({
+          name: path.basename(file),
           path: file,
-          size: stats.size,
           lines: lines.length
         });
-
-        if (onProgress) {
-          onProgress({
-            current: i + 1,
-            total: files.length
-          });
-        }
-      } catch (error) {
-        // Skip unreadable files
-      }
-    }
-
-    metrics.largestFiles = fileStats
-      .sort((a, b) => b.size - a.size)
-      .slice(0, 10);
-
-    return metrics;
-  }
-
-  analyzeFile(content) {
-    const lines = content.split('\n');
-    let codeLines = 0, commentLines = 0, blankLines = 0;
-    let functions = 0, classes = 0, imports = 0;
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-
-      // Comments
-      if (trimmed.startsWith('//') || trimmed.startsWith('#') || 
-          trimmed.startsWith('/*') || trimmed.startsWith('*') ||
-          trimmed.startsWith('<!--') || trimmed.startsWith('--')) {
-        commentLines++;
-        continue;
       }
 
-      // Empty lines
-      if (!trimmed) {
-        blankLines++;
-        continue;
-      }
+      // Komplexe Funktionen finden
+      const complex = findComplexFunctions(content, file);
+      complexFunctions.push(...complex);
 
-      codeLines++;
-
-      // Functions
-      if (/function\s+|def\s+|fn\s+|func\s+/.test(trimmed)) functions++;
-      
-      // Classes
-      if (/class\s+|interface\s+|struct\s+|enum\s+/.test(trimmed)) classes++;
-      
-      // Imports
-      if (/import\s+|from\s+.*import|require\s*\(|#include\s+/.test(trimmed)) imports++;
+    } catch (error) {
+      // Datei überspringen wenn nicht lesbar
     }
-
-    return { codeLines, commentLines, blankLines, functions, classes, imports };
   }
 
-  async getComplexity(onProgress = null) {
-    const files = await this.getFiles();
-    const functions = [];
-    let totalComplexity = 0;
+  // ============================================================
+  // BREAKDOWN BERECHNEN (jeweils 0-100)
+  // ============================================================
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      try {
-        const content = fs.readFileSync(file, 'utf8');
-        const fileFunctions = this.extractFunctions(content);
-        
-        fileFunctions.forEach(func => {
-          const complexity = this.calculateComplexity(func.code);
-          functions.push({
-            name: func.name,
-            file: file,
-            line: func.line,
-            complexity: complexity
-          });
-          totalComplexity += complexity;
-        });
+  // 1. File Size: Bestrafung für große Dateien
+  const fileSizeScore = calculateFileSizeScore(largeFiles, fileCount);
 
-        if (onProgress) {
-          onProgress({
-            current: i + 1,
-            total: files.length
-          });
-        }
-      } catch (error) {
-        // Skip unreadable files
-      }
+  // 2. Comments: Verhältnis Kommentare zu Code
+  const commentRatio = totalLines > 0 ? commentLines / totalLines : 0;
+  const commentsScore = Math.min(100, Math.round(commentRatio * 500));
+
+  // 3. Complexity: Bestrafung für komplexe Funktionen
+  const complexityScore = calculateComplexityScore(complexFunctions);
+
+  // 4. Documentation: Bestrafung für fehlende Kommentare
+  const documentationScore = Math.min(100, Math.round(commentRatio * 400) + 30);
+
+  // ============================================================
+  // GESAMTSCORE
+  // ============================================================
+
+  const score = Math.round(
+    (fileSizeScore + commentsScore + complexityScore + documentationScore) / 4
+  );
+
+  // Note berechnen
+  const grade = getGrade(score);
+
+  // ============================================================
+  // ISSUES SAMMELN
+  // ============================================================
+
+  const issues = [];
+
+  // Große Dateien
+  largeFiles.slice(0, 3).forEach(file => {
+    if (file.lines > 1000) {
+      issues.push({
+        severity: 'high',
+        message: `File ${file.name} is very large (${file.lines} lines)`
+      });
+    } else {
+      issues.push({
+        severity: 'medium',
+        message: `File ${file.name} is large (${file.lines} lines, consider splitting)`
+      });
     }
+  });
 
-    const totalFunctions = functions.length;
-    const average = totalFunctions > 0 ? totalComplexity / totalFunctions : 0;
-    const max = functions.length > 0 ? Math.max(...functions.map(f => f.complexity)) : 0;
-    const complexFunctions = functions.filter(f => f.complexity > 10);
-
-    return {
-      totalFunctions,
-      average,
-      max,
-      complexFunctions: complexFunctions.sort((a, b) => b.complexity - a.complexity)
-    };
-  }
-
-  extractFunctions(content) {
-    const functions = [];
-    const lines = content.split('\n');
-    let currentFunction = null;
-    let braceCount = 0;
-    let inFunction = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const trimmed = lines[i].trim();
-
-      if (trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('/*')) {
-        continue;
-      }
-
-      if (!inFunction) {
-        const match = trimmed.match(/(function|def|fn|func)\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
-        if (match) {
-          currentFunction = {
-            name: match[2] || 'anonymous',
-            line: i + 1,
-            code: [lines[i]]
-          };
-          braceCount = this.countBraces(lines[i]);
-          inFunction = true;
-          if (braceCount === 0) {
-            functions.push(currentFunction);
-            currentFunction = null;
-            inFunction = false;
-          }
-        }
-      } else {
-        currentFunction.code.push(lines[i]);
-        braceCount += this.countBraces(lines[i]);
-        if (braceCount === 0) {
-          functions.push(currentFunction);
-          currentFunction = null;
-          inFunction = false;
-        }
-      }
-    }
-
-    return functions;
-  }
-
-  countBraces(line) {
-    let count = 0;
-    for (const char of line) {
-      if (char === '{') count++;
-      if (char === '}') count--;
-    }
-    return count;
-  }
-
-  calculateComplexity(code) {
-    const patterns = [/if\s*\(/g, /else\s+if\s*\(/g, /for\s*\(/g, /while\s*\(/g,
-                       /do\s*\{/g, /case\s+/g, /\?/g, /\|\|/g, /&&/g, /catch\s*\(/g];
-    let complexity = 1;
-    for (const pattern of patterns) {
-      const matches = code.match(pattern);
-      if (matches) complexity += matches.length;
-    }
-    return complexity;
-  }
-
-  async getDependencies() {
-    const deps = { total: 0, direct: 0, dev: 0, packages: [] };
-    const packageFiles = await glob(path.join(this.targetPath, '**/package.json'), {
-      ignore: ['**/node_modules/**']
+  // Kommentar-Ratio
+  if (commentRatio < 0.05) {
+    issues.push({
+      severity: 'medium',
+      message: `Low comment ratio (${Math.round(commentRatio * 100)}%)`
     });
-
-    for (const file of packageFiles) {
-      try {
-        const content = JSON.parse(fs.readFileSync(file, 'utf8'));
-        const dependencies = content.dependencies || {};
-        const devDependencies = content.devDependencies || {};
-
-        deps.direct += Object.keys(dependencies).length;
-        deps.dev += Object.keys(devDependencies).length;
-
-        Object.entries(dependencies).forEach(([name, version]) => {
-          deps.packages.push({ name, version, type: 'direct' });
-        });
-        Object.entries(devDependencies).forEach(([name, version]) => {
-          deps.packages.push({ name, version, type: 'dev' });
-        });
-      } catch (error) {
-        // Skip invalid package.json
-      }
-    }
-
-    deps.total = deps.direct + deps.dev;
-    return deps;
   }
 
-  async getQuality(onProgress = null) {
-    const metrics = await this.getMetrics(onProgress);
-    const complexity = await this.getComplexity(onProgress);
-    const issues = [];
-    let score = 100;
-
-    // Check file size
-    for (const file of metrics.largestFiles) {
-      if (file.lines > 500) {
-        issues.push({
-          severity: 'medium',
-          message: `File ${path.basename(file.path)} has ${file.lines} lines (consider splitting)`,
-          file: file.path
-        });
-        score -= 2;
-      }
-      if (file.lines > 1000) {
-        issues.push({
-          severity: 'high',
-          message: `File ${path.basename(file.path)} is very large (${file.lines} lines)`,
-          file: file.path
-        });
-        score -= 5;
-      }
+  // Komplexe Funktionen
+  complexFunctions.slice(0, 3).forEach(func => {
+    if (func.complexity > 20) {
+      issues.push({
+        severity: 'high',
+        message: `Function ${func.name} has high complexity (${func.complexity})`
+      });
+    } else {
+      issues.push({
+        severity: 'medium',
+        message: `Function ${func.name} is complex (${func.complexity})`
+      });
     }
+  });
 
-    // Check comments
-    if (metrics.totalLines > 0) {
-      const commentRatio = metrics.commentLines / metrics.totalLines;
-      if (commentRatio < 0.05) {
-        issues.push({
-          severity: 'medium',
-          message: 'Low comment ratio (< 5%) - consider adding more documentation'
-        });
-        score -= 5;
-      }
-    }
-
-    // Check complexity
-    for (const func of complexity.complexFunctions) {
-      if (func.complexity > 20) {
-        issues.push({
-          severity: 'high',
-          message: `Function ${func.name} has high complexity (${func.complexity})`,
-          file: func.file
-        });
-        score -= 3;
-      }
-    }
-
-    let grade;
-    if (score >= 80) grade = 'A';
-    else if (score >= 70) grade = 'B';
-    else if (score >= 60) grade = 'C';
-    else if (score >= 50) grade = 'D';
-    else grade = 'F';
-
-    score = Math.max(0, Math.min(100, score));
-
-    return {
-      score: Math.round(score),
-      grade: grade,
-      issues: issues,
-      details: {
-        'File Size': Math.max(0, 100 - (metrics.largestFiles.filter(f => f.lines > 500).length * 5)),
-        'Comments': Math.round(Math.min(100, (metrics.commentLines / metrics.totalLines) * 100 * 5)),
-        'Complexity': Math.max(0, 100 - (complexity.complexFunctions.length * 5)),
-        'Documentation': Math.max(0, 100 - (issues.filter(i => i.message.includes('comment')).length * 10))
-      }
-    };
-  }
+  return {
+    score,
+    grade,
+    breakdown: {
+      fileSize: fileSizeScore,
+      comments: commentsScore,
+      complexity: complexityScore,
+      documentation: documentationScore
+    },
+    stats: {
+      files: fileCount,
+      lines: totalLines,
+      codeLines,
+      commentLines,
+      blankLines,
+      functions
+    },
+    issues
+  };
 }
 
-export default Analyzer;
+// ============================================================
+// HILFSFUNKTIONEN
+// ============================================================
+
+/**
+ * Prüft ob eine Datei ignoriert werden soll
+ */
+function shouldIgnoreFile(filename) {
+  // Exakte Namen prüfen
+  if (IGNORE_FILES.includes(filename)) return true;
+
+  // Muster prüfen (enthält)
+  for (const pattern of IGNORE_PATTERNS) {
+    if (filename.includes(pattern)) return true;
+  }
+
+  // Docker-Dateien mit beliebigem Suffix
+  if (filename.startsWith('Dockerfile')) return true;
+  if (filename.startsWith('docker-compose')) return true;
+
+  return false;
+}
+
+/**
+ * Sammelt alle Code-Dateien rekursiv
+ */
+function getAllFiles(dir, files = []) {
+  if (!fs.existsSync(dir)) return files;
+
+  const entries = fs.readdirSync(dir);
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry);
+
+    let stat;
+    try {
+      stat = fs.statSync(fullPath);
+    } catch {
+      continue;
+    }
+
+    if (stat.isDirectory()) {
+      // Ignorierte Ordner überspringen
+      if (IGNORE_DIRS.includes(entry)) continue;
+      if (entry.startsWith('.')) continue;
+      getAllFiles(fullPath, files);
+    } else {
+      // Ignorierte Dateien überspringen
+      if (shouldIgnoreFile(entry)) continue;
+
+      const ext = path.extname(entry).toLowerCase();
+      if (CODE_EXTENSIONS.includes(ext)) {
+        files.push(fullPath);
+      }
+    }
+  }
+
+  return files;
+}
+
+/**
+ * Prüft ob eine Zeile ein Kommentar ist
+ */
+function isComment(line) {
+  return (
+    line.startsWith('//') ||
+    line.startsWith('#') ||
+    line.startsWith('/*') ||
+    line.startsWith('*') ||
+    line.startsWith('<!--') ||
+    line.startsWith('--') ||
+    line.startsWith('"""') ||
+    line.startsWith("'''")
+  );
+}
+
+/**
+ * Zählt Funktionen in einer Datei
+ */
+function countFunctions(content) {
+  const patterns = [
+    /function\s+[a-zA-Z_]/g,
+    /def\s+[a-zA-Z_]/g,
+    /fn\s+[a-zA-Z_]/g,
+    /func\s+[a-zA-Z_]/g,
+    /=>\s*{/g,
+    /\)\s*{/g
+  ];
+
+  let count = 0;
+  for (const pattern of patterns) {
+    const matches = content.match(pattern);
+    if (matches) count += matches.length;
+  }
+
+  return count;
+}
+
+/**
+ * Findet komplexe Funktionen
+ */
+function findComplexFunctions(content, filePath) {
+  const complex = [];
+  const lines = content.split('\n');
+
+  // Einfache Heuristik: Suche nach Funktionsdefinitionen
+  const functionRegex = /(function\s+([a-zA-Z_][a-zA-Z0-9_]*)|def\s+([a-zA-Z_][a-zA-Z0-9_]*)|fn\s+([a-zA-Z_][a-zA-Z0-9_]*)|func\s+([a-zA-Z_][a-zA-Z0-9_]*))/;
+
+  let currentFunction = null;
+  let braceCount = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (!currentFunction) {
+      const match = line.match(functionRegex);
+      if (match) {
+        const name = match[2] || match[3] || match[4] || match[5] || 'anonymous';
+        currentFunction = {
+          name,
+          line: i + 1,
+          file: filePath,
+          code: [line]
+        };
+        braceCount = countBraces(line);
+
+        // Einzeiler
+        if (braceCount === 0 && !line.trim().endsWith(':')) {
+          const complexity = calculateComplexity(currentFunction.code);
+          if (complexity > 10) {
+            complex.push({ ...currentFunction, complexity });
+          }
+          currentFunction = null;
+        }
+      }
+    } else {
+      currentFunction.code.push(line);
+      braceCount += countBraces(line);
+
+      if (braceCount === 0) {
+        const complexity = calculateComplexity(currentFunction.code);
+        if (complexity > 10) {
+          complex.push({
+            name: currentFunction.name,
+            line: currentFunction.line,
+            file: currentFunction.file,
+            complexity
+          });
+        }
+        currentFunction = null;
+      }
+    }
+  }
+
+  return complex;
+}
+
+/**
+ * Zählt Klammern
+ */
+function countBraces(line) {
+  let count = 0;
+  for (const char of line) {
+    if (char === '{') count++;
+    if (char === '}') count--;
+  }
+  return count;
+}
+
+/**
+ * Berechnet zyklomatische Komplexität
+ */
+function calculateComplexity(codeLines) {
+  const code = codeLines.join('\n');
+  const patterns = [
+    /if\s*\(/g,
+    /else\s+if\s*\(/g,
+    /for\s*\(/g,
+    /while\s*\(/g,
+    /case\s+/g,
+    /\?\s*.*\s*:/g,
+    /&&/g,
+    /\|\|/g,
+    /catch\s*\(/g
+  ];
+
+  let complexity = 1;
+  for (const pattern of patterns) {
+    const matches = code.match(pattern);
+    if (matches) complexity += matches.length;
+  }
+
+  return complexity;
+}
+
+/**
+ * File Size Score berechnen
+ */
+function calculateFileSizeScore(largeFiles, totalFiles) {
+  if (totalFiles === 0) return 100;
+
+  let penalty = 0;
+  for (const file of largeFiles) {
+    if (file.lines > 1000) penalty += 15;
+    else if (file.lines > 750) penalty += 10;
+    else if (file.lines > 500) penalty += 5;
+  }
+
+  return Math.max(0, 100 - penalty);
+}
+
+/**
+ * Complexity Score berechnen
+ */
+function calculateComplexityScore(complexFunctions) {
+  if (complexFunctions.length === 0) return 100;
+
+  let penalty = 0;
+  for (const func of complexFunctions) {
+    if (func.complexity > 30) penalty += 10;
+    else if (func.complexity > 20) penalty += 7;
+    else if (func.complexity > 15) penalty += 4;
+    else penalty += 2;
+  }
+
+  return Math.max(0, 100 - penalty);
+}
+
+/**
+ * Note aus Score berechnen
+ */
+function getGrade(score) {
+  if (score >= 90) return 'A+';
+  if (score >= 85) return 'A';
+  if (score >= 80) return 'A-';
+  if (score >= 75) return 'B+';
+  if (score >= 70) return 'B';
+  if (score >= 65) return 'B-';
+  if (score >= 60) return 'C+';
+  if (score >= 55) return 'C';
+  if (score >= 50) return 'C-';
+  if (score >= 40) return 'D';
+  return 'F';
+}
