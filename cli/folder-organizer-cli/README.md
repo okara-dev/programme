@@ -1,83 +1,53 @@
- # Folder Organizer CLI
+# Folder Organizer CLI
 
-Interaktives Node.js-CLI zum Analysieren und Sortieren von Dateien in kategorisierte Unterordner. Das Tool durchsucht ein Verzeichnis rekursiv und ordnet Dateien anhand ihrer Dateiendung sowie bestimmter Dateinamen ein.
+## What It Is
 
-## Voraussetzungen
+Folder Organizer CLI is an interactive Node.js utility that scans a directory and groups files into category folders based on names and extensions.
 
-- Node.js 14 oder neuer
+## Features
 
-## Installation
+- Preview planned moves without changing files.
+- Show file, folder, size, type, and category statistics.
+- Organize files after explicit confirmation.
+- Categorize images, documents, archives, media, code, databases, fonts, configuration, backups, scripts, and more.
+- Skip hidden directories, `.git`, `node_modules`, and Python cache directories.
+- Avoid name collisions with suffixes such as `_1` or `_2`.
+
+## Usage
 
 ```bash
 npm install
-```
-
-Direkt aus dem Projekt starten:
-
-```bash
 npm start
 ```
 
-Optional kann das CLI global verknüpft werden:
-
-```bash
-npm link
-folder-organizer
-```
-
-## Verwendung
-
-Nach dem Start wartet das Tool auf interaktive Befehle. Jeder Befehl kann mit einem Pfad ergänzt werden. Ohne Pfad wird das aktuelle Verzeichnis verwendet.
-
-| Befehl | Kurzform | Beschreibung |
-| --- | --- | --- |
-| `preview [pfad]` | `p` | Zeigt die geplante Zuordnung, ohne Dateien zu verschieben |
-| `stats [pfad]` | `s` | Zeigt Datei-, Ordner-, Größen- und Kategorie-Statistiken |
-| `organize [pfad]` | `o` | Fragt nach Bestätigung und verschiebt die Dateien |
-| `path [pfad]` | `cd` | Wechselt das Arbeitsverzeichnis |
-| `config` | `c` | Zeigt Kategorien und unterstützte Dateitypen |
-| `help` | `h` | Zeigt die Hilfe erneut an |
-| `exit` | `q` | Beendet das Programm |
-
-Beispiele:
+Inside the prompt:
 
 ```text
-folder-organizer> preview ./Downloads
-folder-organizer> stats ./Documents
-folder-organizer> organize C:\Users\Name\Downloads
+preview ./Downloads
+stats ./Documents
+organize C:\Users\Name\Downloads
 ```
 
-Vor dem Verschieben zeigt das Tool eine Dateivorschau und verlangt eine Bestätigung mit `yes` oder `y`.
+Use `help` for commands. `preview` and `stats` are read-only. `organize` permanently moves files after `yes` or `y` confirmation. After `npm link`, use `folder-organizer`.
 
-## Kategorien
+## Technology
 
-Dateien werden standardmäßig unter anderem diesen Kategorien zugeordnet:
+- Node.js 14 or newer and ES modules
+- Node.js filesystem and readline APIs
+- No external runtime dependencies
 
-`Images`, `Documents`, `Spreadsheets`, `Presentations`, `Archives`, `Audio`, `Video`, `Code`, `Databases`, `Fonts`, `Config`, `Executables`, `Design`, `Backups`, `Scripts` und `Other`.
+## Privacy and Safety
 
-Sonderdateien wie `README.md`, `package.json`, `requirements.txt` und `.gitignore` besitzen eine feste Zuordnung. Nicht erkannte Dateien landen in `Other`.
+Scanning and moves happen locally; file names and contents are not uploaded. Review the preview and create a backup before organizing. A move can change a directory permanently.
 
-## Verhalten und Sicherheit
+## Distribution
 
-- Versteckte Verzeichnisse, `.git`, `node_modules` und `__pycache__` werden übersprungen.
-- Bereits vorhandene Kategorieordner werden nicht erneut durchsucht.
-- Bei Dateinamenkonflikten wird ein Suffix wie `_1` oder `_2` ergänzt.
-- `preview` und `stats` verändern keine Dateien.
-- `organize` verschiebt Dateien dauerhaft. Vor der Ausführung sollte ein Backup erstellt oder zuerst `preview` verwendet werden.
+Folder Organizer CLI is distributed as a paid digital product through Gumroad. The product page may contain the current package, releases, and commercial terms.
 
-## Projektstruktur
+## License
 
-```text
-bin/index.js       Interaktive CLI und Befehlsverarbeitung
-lib/organizer.js   Scan-, Zuordnungs- und Verschiebelogik
-```
+The source project declares the MIT License. See `package.json` for metadata. Gumroad purchase terms and the MIT License may apply to different parts of the distributed package.
 
-## Tests
+## Status
 
-```bash
-npm test
-```
-
-## Lizenz
-
-MIT
+Version 1.0.0. Test commands are available through `npm test`.

@@ -1,185 +1,52 @@
 # Vulnerability Scanner CLI
 
-Sicherheits-Scanner für Projekt-Schwachstellen. Prüft auf bekannte Sicherheitslücken in Dependencies, Code-Probleme, exponierte Umgebungsdateien und Secrets.
+## What It Is
 
-## Installation
-
-```bash
-npm install
-```
-
-## Nutzung
-
-### Basis-Scan
-```bash
-npm start
-# oder
-npm start -- --path ./
-```
-
-### Interaktiver Modus
-```bash
-npm start -- --interactive
-```
-
-### Mit spezifischen Checks
-```bash
-npm start -- --npm --code --env --secrets
-# oder Kurzform
-npm start -- --all
-```
-
-## Optionen
-
-| Option | Kurz | Standard | Beschreibung |
-|--------|------|----------|-------------|
-| `--path` | `-p` | `./` | Pfad zum Projekt |
-| `--format` | `-f` | `table` | Ausgabeformat: `json`, `table`, `html` |
-| `--output` | `-o` | - | Ausgabedatei für Report |
-| `--interactive` | `-i` | - | Interaktiver Modus |
-| `--npm` | - | - | Nur NPM Dependencies prüfen |
-| `--code` | - | - | Nur Code-Analyse |
-| `--env` | - | - | Nur Environment-Dateien |
-| `--secrets` | - | - | Nur Secrets detektieren |
-| `--all` | - | - | Alle Checks ausführen |
-
-## Beispiele
-
-```bash
-# Vollständiger Scan des aktuellen Projekts
-npm start
-
-# Scan eines anderen Projekts
-npm start -- --path /path/to/project
-
-# Nur NPM-Vulnerabilities
-npm start -- --npm
-
-# JSON-Report speichern
-npm start -- --format json --output ./security-report.json
-
-# Interaktive Auswahl der Checks
-npm start -- --interactive
-```
-
-## Sicherheits-Checks
-
-### 1. NPM Audit 🔒
-- Überprüft bekannte Schwachstellen in Dependencies
-- Nutzt `npm audit`
-- Bewertet Severity: critical, high, medium, low
-
-### 2. Code Analysis 🔍
-- Sucht nach unsicheren Coding-Patterns
-- Erkennt: eval(), dynamic requires, innerHTML, SQL-Injection-Muster
-- Hardcoded Secrets erkennen
-
-### 3. Environment Check 🔑
-- Prüft auf nicht-ignorierte .env Dateien
-- Warnt vor sensiblen Dateien (AWS, SSH, Docker-Configs)
-- Empfiehlt .gitignore-Einträge
-
-### 4. Secrets Detection 🕵️
-- Scannt Code nach exponierten Secrets
-- Erkennt: API Keys, Tokens, Private Keys, OAuth-Tokens
-- Warnt vor Hardcoded-Credentials
-
-## Ausgabeformate
-
-### Table (Standard)
-```
-🔒 Security Vulnerability Scanner
-
-📊 Scan Results:
-
-Total Issues: 5
-  🔴 Critical: 2
-  🟠 High: 1
-  🟡 Medium: 2
-
-🔍 Issues Found:
-
-🔴 [CRITICAL] NPM Dependency Vulnerability: express
-   Type: npm-vulnerability
-   ...
-```
-
-### JSON
-```json
-{
-  "projectPath": "/path/to/project",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "issues": [...],
-  "summary": {...}
-}
-```
-
-## Severity-Levels
-
-- 🔴 **CRITICAL** - Sofort beheben erforderlich
-- 🟠 **HIGH** - Schnell beheben empfohlen
-- 🟡 **MEDIUM** - Zeitnah beheben
-- 🔵 **LOW** - Bei Gelegenheit überprüfen
-
-## Exit Codes
-
-- `0` - Erfolgreich, keine kritischen Probleme
-- `1` - Fehler während Scan
-- `2` - Kritische Vulnerabilities gefunden
+Vulnerability Scanner CLI checks Node.js dependencies, source-code patterns, environment files, and exposed secrets. It produces terminal results or a report for review and automation.
 
 ## Features
 
-- 🚀 Schnelle Sicherheitsprüfung
-- 🔍 Mehrere Scan-Typen (NPM, Code, Env, Secrets)
-- 📊 Detaillierte Reports
-- 💾 Export zu JSON/HTML
-- 🎨 Farbige Terminal-Ausgabe
-- 🤖 Automatisierbar für CI/CD
+- Run npm audit checks for known dependency vulnerabilities.
+- Detect risky code patterns and possible hardcoded credentials.
+- Check for exposed `.env`, AWS, SSH, Docker, and related sensitive files.
+- Detect API keys, tokens, private keys, OAuth tokens, and other secret-like patterns.
+- Run all checks by default, select checks individually, or use interactive mode.
+- Export JSON or display a colored table-style report.
+- Sort findings by critical, high, medium, and low severity.
 
-## Use Cases
+## Usage
 
-### Vor Production-Deployment
 ```bash
-npm start -- --path ./ --format json --output ./deploy-scan.json
+npm install
+npm start
+npm start -- --path ./my-project
+npm start -- --npm
+npm start -- --all --format json --output ./security-report.json
+npm start -- --interactive
 ```
 
-### CI/CD Integration
-```bash
-npm start -- --all --format json > ./security-report.json
-if grep -q "critical" security-report.json; then exit 1; fi
-```
+Options include `--path`/`-p`, `--format`/`-f` (`json`, `table`, or `html`), `--output`/`-o`, `--interactive`/`-i`, `--npm`, `--code`, `--env`, `--secrets`, and `--all`. After `npm link`, the command is `vulnscan`.
 
-### Regelmäßige Audits
-```bash
-npm start -- --npm  # Nur Dependencies
-```
+## Technology
 
-## Best Practices
+- Node.js CommonJS runtime
+- `commander`, `inquirer`, `chalk`, `table`, `fs-extra`, `axios`, and `semver`
+- npm audit for dependency vulnerability data
 
-1. **Regelmäßig scannen** - Mindestens wöchentlich
-2. **.gitignore überprüfen** - Stellt sicher, dass Secrets nicht committed werden
-3. **Secrets Management** - Nutze Environment-Variablen für Credentials
-4. **Dependencies aktuell halten** - Regelmäßige Updates
-5. **Code Reviews** - Checke Scanner-Warnungen
+## Privacy and Safety
 
-## Limitations
+Scanning is primarily local, but npm audit can contact the npm registry. Reports may contain project paths, dependency names, code locations, or secret-like values; store them securely.
 
-- Code-Analyse ist Pattern-basiert (keine AST-Analyse)
-- NPM Audit ist abhängig von npm-Registry
-- Secrets-Detection basiert auf Regex-Patterns
+This tool is pattern-based and is not a complete security assessment. It does not replace code review, dependency governance, secret management, penetration testing, or professional security advice. Validate every finding before acting on it.
 
-## Dependencies
+## Distribution
 
-- `commander` - CLI-Argument-Parser
-- `inquirer` - Interaktive CLI-Prompts
-- `chalk` - Farbige Terminal-Ausgabe
-- `axios` - HTTP-Client für API-Checks
-- `table` - Tabellen-Formatierung
+Vulnerability Scanner CLI is distributed as a paid digital product through Gumroad. The product page may contain the current package, releases, and commercial terms.
 
-## Lizenz
+## License
 
-MIT
+The source project declares the MIT License. See `package.json` for metadata. Gumroad purchase terms and the MIT License may apply to different parts of the distributed package.
 
----
+## Status
 
-**Hinweis:** Dieses Tool sollte als Teil eines umfassenden Sicherheitsprozesses verwendet werden, nicht als einziges Sicherheits-Tool.
+Version 1.0.0. Use this scanner as one component of a broader secure development process.

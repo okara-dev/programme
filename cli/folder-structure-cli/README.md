@@ -1,39 +1,28 @@
- # Folder Structure CLI
+# Folder Structure CLI
 
-Interaktives Node.js-CLI zum Erzeugen von Ordner- und Dateistrukturen aus einer Textdarstellung. Dateien werden mit einfachem Standardinhalt passend zur Dateiendung angelegt.
+## What It Is
 
-## Voraussetzungen
+Folder Structure CLI creates a folder and file tree from an ASCII-style text description. It previews the parsed structure, asks for confirmation, and creates it in the current working directory.
 
-- Node.js 14 oder neuer
+## Features
 
-## Installation
+- Parse tree input containing folders and files.
+- Display a preview before creation.
+- Generate starter content for common Python, JavaScript, TypeScript, JSON, YAML, Markdown, HTML, CSS, shell, and SQL files.
+- Create empty files for unknown extensions.
+- Reuse existing directories and accept `exit` or `Ctrl+C` to cancel.
+
+## Usage
 
 ```bash
 npm install
-```
-
-Das Tool kann direkt aus dem Projekt gestartet werden:
-
-```bash
 npm start
 ```
 
-Optional kann es global verknüpft werden:
-
-```bash
-npm link
-folder
-```
-
-## Verwendung
-
-Nach dem Start wird eine Strukturzeile nach der anderen eingegeben. Eine leere Zeile beendet die Eingabe. Anschließend zeigt das Tool eine Vorschau und fragt nach einer Bestätigung sowie dem Zielpfad.
-
-Beispiel:
+Enter a structure such as:
 
 ```text
 my-project/
-│
 ├── src/
 │   ├── index.js
 │   └── config.json
@@ -41,40 +30,28 @@ my-project/
 └── package.json
 ```
 
-Danach:
+Finish with an empty line, review the preview, and answer `yes`. After `npm link`, the global command is `folder`.
 
-```text
-✅ Do you want to create this structure? (yes/no): yes
-📁 Enter the path where to create the structure: ./output
-```
+Existing files with the same path can be overwritten when the structure is generated. Use a new target directory or a backup first.
 
-Der Zielpfad ist standardmäßig das aktuelle Verzeichnis. Mit `exit` oder `Ctrl+C` kann die Eingabe beendet werden.
+## Technology
 
-## Unterstützte Standardinhalte
+- Node.js 14 or newer and ES modules
+- Node.js filesystem, path, and readline APIs
+- No external runtime dependencies
 
-Für einige Dateiendungen wird automatisch ein kurzer Ausgangsinhalt erzeugt, unter anderem für:
+## Privacy and Safety
 
-- Python, JavaScript und TypeScript
-- JSON, YAML und Konfigurationsdateien
-- Markdown und Textdateien
-- HTML, CSS und Shell-Skripte
-- SQL-Dateien
+The tool operates locally and does not upload input or generated files. It writes to the current working directory and may overwrite existing files.
 
-Unbekannte Dateiendungen werden als leere Dateien angelegt. Bereits vorhandene Ordner werden verwendet; vorhandene Dateien werden beim Erzeugen überschrieben.
+## Distribution
 
-## Projektstruktur
+Folder Structure CLI is distributed as a paid digital product through Gumroad. The product page may contain the current package, releases, and commercial terms.
 
-```text
-bin/index.js       Interaktive CLI
-lib/generate.js    Parser, Vorschau und Erzeugung
-```
+## License
 
-## Tests
+The source project declares the MIT License. See `package.json` for metadata. Gumroad purchase terms and the MIT License may apply to different parts of the distributed package.
 
-```bash
-npm test
-```
+## Status
 
-## Lizenz
-
-MIT
+Version 1.0.0. Test commands are available through `npm test`.
