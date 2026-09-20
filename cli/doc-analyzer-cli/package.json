@@ -5,7 +5,7 @@
   "main": "bin/index.js",
   "type": "module",
   "bin": {
-    "analyze": "./bin/index.js"
+    "docanalyze": "./bin/index.js"
   },
   "scripts": {
     "start": "node bin/index.js"

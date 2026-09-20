@@ -1,0 +1,19 @@
+{
+  "fps": 60,
+  "gravity": 1200,
+  "max_fall_speed": 900,
+  "cat": {
+    "width": 64,
+    "height": 64,
+    "speed": 80
+  },
+  "sprite_fps": 8,
+  "timings": {
+    "idle_min": 1.0,
+    "idle_max": 5.0,
+    "walk_min": 2.0,
+    "walk_max": 8.0,
+    "sleep_duration": 10.0,
+    "groom_duration": 4.0
+  }
+}

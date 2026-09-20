@@ -1,2 +1,2 @@
-# Dependencies
-
+PyQt5>=5.15
+pywinctl>=0.3

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// .env laden – sucht im Projektordner (nicht cwd!)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -31,6 +32,13 @@ const c = {
   dim: '\x1b[2m'
 };
 
+// Usage-Tracker Datei
+const USAGE_FILE = path.join(__dirname, '..', '.usage.json');
+
+// ============================================================
+// BANNER & HILFE
+// ============================================================
+
 function showBanner() {
   console.log(`
 ${c.bold}${c.magenta}╔═══════════════════════════════════════════════════════════════════╗
@@ -38,6 +46,14 @@ ${c.bold}${c.magenta}╔══════════════════�
 ║           PDF • Word • TXT • HTML → Zusammenfassung              ║
 ╚═══════════════════════════════════════════════════════════════════╝${c.reset}
 `);
+}
+
+function showRateLimitWarning() {
+  console.log(`${c.yellow}⚠️  KOSTENLOSES LIMIT BEACHTEN:${c.reset}`);
+  console.log(`   ${c.dim}• Max. ${c.bold}250 Analysen pro Tag${c.reset}${c.dim} (Reset: 00:00 UTC)${c.reset}`);
+  console.log(`   ${c.dim}• Max. ${c.bold}70.000 Tokens pro Minute${c.reset}${c.dim} (bei sehr langen Dokumenten)${c.reset}`);
+  console.log(`   ${c.dim}• Kontext-Fenster: ${c.bold}131.072 Tokens${c.reset}${c.dim} pro Request${c.reset}`);
+  console.log('');
 }
 
 function showHelp() {
@@ -50,6 +66,7 @@ ${c.bold}Optionen:${c.reset}
   ${c.cyan}--lang${c.reset} <sprache>   Sprache (Standard: Deutsch)
   ${c.cyan}--output${c.reset} <datei>    Antwort in Datei speichern
   ${c.cyan}--prompt${c.reset} "<text>"   Eigener Prompt
+  ${c.cyan}--usage${c.reset}             Zeigt verbleibende Analysen heute
 
 ${c.bold}Modi:${c.reset}
   ${c.green}summary${c.reset}       Kurze Zusammenfassung
@@ -66,8 +83,13 @@ ${c.bold}Beispiele:${c.reset}
   docanalyze dokument.txt --mode keypoints
   docanalyze bericht.pdf --mode explain --output analyse.txt
   docanalyze brief.txt --prompt "Ist dieser Brief wichtig?"
+  docanalyze --usage
 `);
 }
+
+// ============================================================
+// HELPER
+// ============================================================
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -77,13 +99,98 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+/**
+ * Wandelt **fett** in ANSI-Fett um
+ */
+function formatBold(text) {
+  return text.replace(/\*\*([^*]+)\*\*/g, `${c.bold}$1${c.reset}`);
+}
+
+function loadingAnimation(text) {
+  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  let i = 0;
+  process.stdout.write(`\r${c.cyan}${frames[0]} ${text}${c.reset}`);
+  return setInterval(() => {
+    i = (i + 1) % frames.length;
+    process.stdout.write(`\r${c.cyan}${frames[i]} ${text}${c.reset}`);
+  }, 80);
+}
+
+// ============================================================
+// USAGE TRACKER (250 Requests/Tag)
+// ============================================================
+
+function getUsage() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    if (fs.existsSync(USAGE_FILE)) {
+      const usage = JSON.parse(fs.readFileSync(USAGE_FILE, 'utf8'));
+      if (usage.date === today) {
+        return { date: today, count: usage.count || 0 };
+      }
+    }
+    return { date: today, count: 0 };
+  } catch {
+    return { date: new Date().toISOString().split('T')[0], count: 0 };
+  }
+}
+
+function trackUsage() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const usage = getUsage();
+
+    if (usage.count >= 250) {
+      console.log(`\n${c.red}❌ TAGESLIMIT ERREICHT (250/250)!${c.reset}`);
+      console.log(`${c.yellow}   Bitte warte bis 00:00 UTC für ein Reset.${c.reset}`);
+      console.log(`${c.dim}   Aktuelles Datum: ${today}${c.reset}`);
+      process.exit(1);
+    }
+
+    usage.count++;
+    fs.writeFileSync(USAGE_FILE, JSON.stringify(usage), 'utf8');
+
+    const remaining = 250 - usage.count;
+    if (remaining <= 10) {
+      console.log(`\n${c.yellow}⚠️  Nur noch ${remaining} Analysen heute verfügbar!${c.reset}`);
+    }
+
+    return remaining;
+  } catch (e) {
+    // Ignorieren wenn Tracker nicht funktioniert
+    return null;
+  }
+}
+
+function showUsageStatus() {
+  const usage = getUsage();
+  const remaining = 250 - usage.count;
+  const usedPercent = Math.round((usage.count / 250) * 100);
+  const barLength = 30;
+  const filled = Math.round((usedPercent / 100) * barLength);
+  const bar = '█'.repeat(filled) + '░'.repeat(barLength - filled);
+
+  console.log(`\n${c.bold}📊 Tages-Usage (${usage.date})${c.reset}`);
+  console.log('='.repeat(50));
+  console.log(`  ${c.dim}[${bar}]${c.reset} ${usedPercent}%`);
+  console.log(`  ${c.green}Verfügbar:${c.reset} ${remaining} / 250 Analysen`);
+  console.log(`  ${c.dim}Verbraucht:${c.reset} ${usage.count}`);
+  console.log(`  ${c.dim}Reset:${c.reset} 00:00 UTC`);
+  console.log('');
+}
+
+// ============================================================
+// ARGUMENT PARSER
+// ============================================================
+
 function parseArgs(args) {
   const opts = {
     file: null,
     mode: 'analyze',
     language: 'Deutsch',
     output: null,
-    prompt: null
+    prompt: null,
+    showUsage: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -101,6 +208,8 @@ function parseArgs(args) {
     } else if (arg === '--prompt') {
       opts.prompt = args[i + 1];
       i++;
+    } else if (arg === '--usage') {
+      opts.showUsage = true;
     } else if (!arg.startsWith('--')) {
       if (!opts.file) opts.file = arg;
     }
@@ -109,22 +218,64 @@ function parseArgs(args) {
   return opts;
 }
 
-function loadingAnimation(text) {
-  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  let i = 0;
-  process.stdout.write(`\r${c.cyan}${frames[0]} ${text}${c.reset}`);
-  return setInterval(() => {
-    i = (i + 1) % frames.length;
-    process.stdout.write(`\r${c.cyan}${frames[i]} ${text}${c.reset}`);
-  }, 80);
+// ============================================================
+// AUSGABE-FORMATIERUNG
+// ============================================================
+
+function printFormattedResult(text) {
+  const lines = text.split('\n');
+
+  for (const line of lines) {
+    // Überschriften (##, ###)
+    if (line.match(/^#{1,3}\s/)) {
+      const clean = line.replace(/^#{1,3}\s*/, '');
+      console.log(`\n${c.bold}${c.magenta}${clean}${c.reset}`);
+      continue;
+    }
+
+    // Aufzählungen (- • *)
+    if (line.match(/^\s*[-•*]\s/)) {
+      const clean = line.replace(/^\s*[-•*]\s*/, '');
+      const indent = line.match(/^\s*/)[0];
+      console.log(`${indent}  ${c.cyan}•${c.reset} ${formatBold(clean)}`);
+      continue;
+    }
+
+    // Nummerierte Listen
+    if (line.match(/^\s*\d+\.\s/)) {
+      console.log(`  ${formatBold(line.trim())}`);
+      continue;
+    }
+
+    // Normale Zeilen
+    if (line.trim()) {
+      console.log(formatBold(line));
+    } else {
+      console.log('');
+    }
+  }
 }
+
+// ============================================================
+// MAIN
+// ============================================================
 
 async function main() {
   const args = process.argv.slice(2);
 
+  // Hilfe
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     showBanner();
     showHelp();
+    process.exit(0);
+  }
+
+  const opts = parseArgs(args);
+
+  // Nur Usage anzeigen
+  if (opts.showUsage) {
+    showBanner();
+    showUsageStatus();
     process.exit(0);
   }
 
@@ -132,16 +283,14 @@ async function main() {
   if (!process.env.GROQ_API_KEY) {
     console.log(`${c.red}❌ GROQ_API_KEY ist nicht gesetzt!${c.reset}`);
     console.log(`\n${c.yellow}So setzt du den Key:${c.reset}`);
-    console.log(`  ${c.dim}Windows PowerShell:${c.reset}`);
-    console.log(`    $env:GROQ_API_KEY = "gsk_..."`);
-    console.log(`  ${c.dim}Windows CMD:${c.reset}`);
-    console.log(`    set GROQ_API_KEY=gsk_...`);
-    console.log(`  ${c.dim}Linux/Mac:${c.reset}`);
-    console.log(`    export GROQ_API_KEY="gsk_..."`);
+    console.log(`  ${c.dim}Erstelle eine .env Datei mit:${c.reset}`);
+    console.log(`    GROQ_API_KEY=gsk_...`);
+    console.log('');
+    console.log(`  ${c.dim}Oder setze die Umgebungsvariable:${c.reset}`);
+    console.log(`    Windows PowerShell: $env:GROQ_API_KEY = "gsk_..."`);
+    console.log(`    Linux/Mac:          export GROQ_API_KEY="gsk_..."`);
     process.exit(1);
   }
-
-  const opts = parseArgs(args);
 
   if (!opts.file) {
     console.log(`${c.red}❌ Keine Datei angegeben!${c.reset}`);
@@ -150,6 +299,7 @@ async function main() {
   }
 
   showBanner();
+  showRateLimitWarning();
 
   const filePath = path.resolve(opts.file);
 
@@ -209,7 +359,10 @@ async function main() {
     console.log(`  ${c.yellow}⚠️  Text gekürzt auf ${preparedText.length.toLocaleString()} Zeichen (zu lang)${c.reset}`);
   }
 
-  // 3. KI-Analyse
+  // 3. Usage-Tracking
+  const remaining = trackUsage();
+
+  // 4. KI-Analyse
   console.log(`\n${c.dim}🤖 Sende an Groq KI...${c.reset}`);
   const spinner = loadingAnimation('Analysiere mit groq/compound-mini...');
 
@@ -222,24 +375,30 @@ async function main() {
     });
   } catch (error) {
     clearInterval(spinner);
-    process.stdout.write('\r' + ' '.repeat(60) + '\r');
+    process.stdout.write('\r' + ' '.repeat(70) + '\r');
     console.log(`${c.red}❌ KI-Fehler: ${error.message}${c.reset}`);
     process.exit(1);
   }
 
   clearInterval(spinner);
-  process.stdout.write('\r' + ' '.repeat(60) + '\r');
+  process.stdout.write('\r' + ' '.repeat(70) + '\r');
 
-  // 4. Ergebnis anzeigen
+  // 5. Ergebnis anzeigen (formatiert)
   console.log(`\n${c.bold}${c.green}📊 Ergebnis:${c.reset}`);
   console.log('='.repeat(60));
   console.log('');
-  console.log(result.result);
+
+  printFormattedResult(result.result);
+
   console.log('');
   console.log('='.repeat(60));
   console.log(`${c.dim}Tokens: ${result.tokens} | Modell: ${result.model}${c.reset}`);
 
-  // 5. Optional: Speichern
+  if (remaining !== null) {
+    console.log(`${c.dim}Verbleibende Analysen heute: ${remaining}/250${c.reset}`);
+  }
+
+  // 6. Optional: Speichern
   if (opts.output) {
     const outputPath = path.resolve(opts.output);
     const content = `# Analyse: ${path.basename(filePath)}\n\n` +

@@ -2,6 +2,22 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'groq/compound-mini';
 
 /**
+ * System-Prompt: Einheitliche Formatierungs-Regeln
+ */
+const SYSTEM_BASE = `Du bist ein hilfreicher Assistent, der Dokumente analysiert.
+
+FORMATIERUNGS-REGELN (WICHTIG!):
+- Verwende KEINE Tabellen (Markdown-Tabellen sind im Terminal unlesbar).
+- Nutze stattdessen klare Überschriften und Aufzählungen.
+- Strukturiere die Antwort mit Emojis als visuelle Anker.
+- Halte Absätze kurz (max. 2-3 Sätze).
+- Nutze **Fett** für Schlüsselwörter.
+- Bei Listen: nutze "•" oder "-" für Aufzählungen.
+- Nummeriere Abschnitte wenn sinnvoll (1., 2., 3.).
+- Antworte auf {language}.
+- Sei präzise, nicht ausschweifend.`;
+
+/**
  * Sendet Text an Groq zur Analyse
  */
 export async function analyzeWithGroq(text, options = {}) {
@@ -11,42 +27,109 @@ export async function analyzeWithGroq(text, options = {}) {
     throw new Error('GROQ_API_KEY ist nicht gesetzt');
   }
 
-  const mode = options.mode || 'summary';
+  const mode = options.mode || 'analyze';
   const language = options.language || 'Deutsch';
   const customPrompt = options.prompt || null;
 
-  // Prompt je nach Modus
-  let systemPrompt;
+  const systemPrompt = SYSTEM_BASE.replace('{language}', language);
+
   let userPrompt;
 
   if (customPrompt) {
-    systemPrompt = `Du bist ein hilfreicher Assistent, der Dokumente analysiert. Antworte auf ${language}.`;
-    userPrompt = `${customPrompt}\n\n--- DOKUMENT ---\n${text}`;
+    userPrompt = `${customPrompt}
+
+Bitte formatiere die Antwort wie folgt:
+- Überschrift mit 📌
+- Aufzählungen mit •
+- Keine Tabellen!
+
+--- DOKUMENT ---
+${text}`;
   } else {
     switch (mode) {
       case 'summary':
-        systemPrompt = `Du bist ein Assistent, der Dokumente präzise zusammenfasst. Antworte auf ${language}. Sei klar und strukturiert.`;
-        userPrompt = `Fasse das folgende Dokument zusammen. Gib eine kurze Übersicht und die wichtigsten Punkte:\n\n--- DOKUMENT ---\n${text}`;
+        userPrompt = `Fasse das folgende Dokument zusammen.
+
+Format:
+## 📋 Zusammenfassung
+
+**Kurzbeschreibung:** (1-2 Sätze)
+
+**Inhalt:**
+• Punkt 1
+• Punkt 2
+• Punkt 3
+
+**Fazit:** (1 Satz)
+
+--- DOKUMENT ---
+${text}`;
         break;
 
       case 'explain':
-        systemPrompt = `Du bist ein Assistent, der komplexe Dokumente einfach erklärt. Antworte auf ${language}.`;
-        userPrompt = `Erkläre das folgende Dokument in einfachen Worten. Was steht drin? Was bedeutet es?\n\n--- DOKUMENT ---\n${text}`;
+        userPrompt = `Erkläre das folgende Dokument einfach und verständlich.
+
+Format:
+## 💡 Einfach erklärt
+
+**Worum geht es?**
+(Kurze Antwort)
+
+**Was steht drin?**
+• Punkt 1
+• Punkt 2
+
+**Was bedeutet das?**
+(Kurze Antwort)
+
+--- DOKUMENT ---
+${text}`;
         break;
 
       case 'keypoints':
-        systemPrompt = `Du bist ein Assistent, der die wichtigsten Punkte extrahiert. Antworte auf ${language}.`;
-        userPrompt = `Extrahiere die wichtigsten Punkte aus dem folgenden Dokument als Liste:\n\n--- DOKUMENT ---\n${text}`;
+        userPrompt = `Extrahiere die wichtigsten Punkte aus dem folgenden Dokument.
+
+Format:
+## 🎯 Wichtigste Punkte
+
+1. **Punkt 1** – kurze Erklärung
+2. **Punkt 2** – kurze Erklärung
+3. **Punkt 3** – kurze Erklärung
+
+(max. 7 Punkte, sortiert nach Wichtigkeit)
+
+--- DOKUMENT ---
+${text}`;
         break;
 
       case 'analyze':
-        systemPrompt = `Du bist ein Assistent, der Dokumente analysiert. Antworte auf ${language}.`;
-        userPrompt = `Analysiere das folgende Dokument:\n- Was ist das für ein Dokument?\n- Was steht drin?\n- Was sind die wichtigsten Punkte?\n- Gibt es etwas Auffälliges?\n\n--- DOKUMENT ---\n${text}`;
-        break;
-
       default:
-        systemPrompt = `Du bist ein hilfreicher Assistent. Antworte auf ${language}.`;
-        userPrompt = `${text}`;
+        userPrompt = `Analysiere das folgende Dokument strukturiert.
+
+Format:
+
+## 📄 Dokumenttyp
+(Kurze Antwort: Was ist das für ein Dokument?)
+
+## 📝 Inhalt
+(Kurze Zusammenfassung in 2-3 Sätzen)
+
+## 🎯 Wichtigste Punkte
+• **Punkt 1** – kurze Erklärung
+• **Punkt 2** – kurze Erklärung
+• **Punkt 3** – kurze Erklärung
+
+## ⚠️ Auffälligkeiten
+• Auffälligkeit 1
+• Auffälligkeit 2
+(Falls keine: "Keine besonderen Auffälligkeiten.")
+
+## ✅ Fazit
+(Kurzes Fazit in 1-2 Sätzen)
+
+--- DOKUMENT ---
+${text}`;
+        break;
     }
   }
 
