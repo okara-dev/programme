@@ -111,27 +111,68 @@ function d {
 }
 
 function e {
-    Write-Host "[FARBE] Verfuegbare Konsolenfarben:" -ForegroundColor Cyan
+    Write-Host "[FARBE] Was moechtest du aendern?" -ForegroundColor Cyan
+    Write-Host "1  Textfarbe" -ForegroundColor Green
+    Write-Host "2  Hintergrundfarbe (ganzes Terminal)" -ForegroundColor Green
+    Write-Host "3  Beides" -ForegroundColor Green
+    Write-Host "0  Abbrechen" -ForegroundColor Red
+    $modus = Read-Host "[FARBE] Wahl (0-3)"
+
+    if ($modus -eq "0") { return }
+
     $farben = @(
         "Black","DarkBlue","DarkGreen","DarkCyan","DarkRed","DarkMagenta",
         "DarkYellow","Gray","DarkGray","Blue","Green","Cyan","Red",
         "Magenta","Yellow","White"
     )
-    for ($i = 0; $i -lt $farben.Count; $i++) {
-        Write-Host ("{0,2}  {1}" -f $i, $farben[$i]) -ForegroundColor $farben[$i]
-    }
-    Write-Host ""
-    $wahl = Read-Host "[FARBE] Nummer waehlen (0-$($farben.Count - 1)) oder 'q'"
-    if ($wahl -eq "q") { return }
-    if ($wahl -match "^\d+$" -and [int]$wahl -ge 0 -and [int]$wahl -lt $farben.Count) {
-        $farbe = $farben[[int]$wahl]
-        $host.UI.RawUI.ForegroundColor = $farbe
-        Write-Host "[FARBE] Textfarbe geaendert zu: $farbe" -ForegroundColor $farbe
-    } else {
+
+    function WaehleFarbe($titel) {
+        Write-Host ""
+        Write-Host "[FARBE] $titel" -ForegroundColor Cyan
+        for ($i = 0; $i -lt $farben.Count; $i++) {
+            Write-Host ("{0,2}  {1}" -f $i, $farben[$i]) -ForegroundColor $farben[$i]
+        }
+        Write-Host ""
+        $wahl = Read-Host "[FARBE] Nummer waehlen (0-$($farben.Count - 1)) oder 'q'"
+        if ($wahl -eq "q") { return $null }
+        if ($wahl -match "^\d+$" -and [int]$wahl -ge 0 -and [int]$wahl -lt $farben.Count) {
+            return $farben[[int]$wahl]
+        }
         Write-Host "[FEHLER] Ungueltige Eingabe!" -ForegroundColor Red
+        return $null
+    }
+
+    switch ($modus) {
+        "1" {
+            $farbe = WaehleFarbe "Textfarbe waehlen"
+            if ($farbe) {
+                $host.UI.RawUI.ForegroundColor = $farbe
+                Write-Host "[FARBE] Textfarbe geaendert zu: $farbe" -ForegroundColor $farbe
+            }
+        }
+        "2" {
+            $farbe = WaehleFarbe "Hintergrundfarbe waehlen"
+            if ($farbe) {
+                $host.UI.RawUI.BackgroundColor = $farbe
+                Clear-Host
+                Write-Host "[FARBE] Hintergrundfarbe geaendert zu: $farbe" -ForegroundColor Cyan
+            }
+        }
+        "3" {
+            $textFarbe = WaehleFarbe "Textfarbe waehlen"
+            if (-not $textFarbe) { return }
+            $bgFarbe = WaehleFarbe "Hintergrundfarbe waehlen"
+            if (-not $bgFarbe) { return }
+            $host.UI.RawUI.ForegroundColor = $textFarbe
+            $host.UI.RawUI.BackgroundColor = $bgFarbe
+            Clear-Host
+            Write-Host "[FARBE] Text: $textFarbe | Hintergrund: $bgFarbe" -ForegroundColor $textFarbe
+        }
+        default {
+            Write-Host "[FEHLER] Ungueltige Eingabe!" -ForegroundColor Red
+        }
     }
 }
-
 
 function f {
     Write-Host "[PAPIERKORB] Willst du den Papierkorb wirklich leeren? (j/n)" -ForegroundColor Red
