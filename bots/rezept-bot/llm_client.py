@@ -18,7 +18,7 @@ class LLMClient:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                max_tokens=max_tokens,
+                max_tokens=min(max_tokens, 1000),
                 temperature=temperature,
             )
             return response.choices[0].message.content.strip()

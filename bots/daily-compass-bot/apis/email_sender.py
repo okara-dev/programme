@@ -15,23 +15,23 @@ class EmailSender:
         self.smtp_server = config.get("smtp_server", "smtp.gmail.com")
         self.smtp_port = config.get("smtp_port", 587)
     
-    def send_daily_compass(self, news_content, nasa_content, 
-                           proverb_content, joke_content):
+    def send_daily_compass(self, news_content, hn_content, dev_content,
+                           nasa_content, proverb_content, joke_content):
         subject = f"🧭 Daily Compass - {datetime.now().strftime('%d.%m.%Y')}"
         
         html_body = self._build_html(
-            news_content, nasa_content,
-            proverb_content, joke_content
+            news_content, hn_content, dev_content,
+            nasa_content, proverb_content, joke_content
         )
         
         text_body = self._build_text(
-            news_content, nasa_content,
-            proverb_content, joke_content
+            news_content, hn_content, dev_content,
+            nasa_content, proverb_content, joke_content
         )
         
         return self.send_email_html(subject, html_body, text_body)
     
-    def _build_html(self, news, nasa, proverb, joke):
+    def _build_html(self, news, hn, dev, nasa, proverb, joke):
         return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -81,6 +81,8 @@ class EmailSender:
             color: #2d3748;
         }}
         .section-news {{ border-left-color: #3182ce; }}
+        .section-hn {{ border-left-color: #ff6600; }}
+        .section-dev {{ border-left-color: #0a0a0a; }}
         .section-nasa {{ border-left-color: #805ad5; }}
         .section-proverb {{ border-left-color: #d69e2e; }}
         .section-joke {{ border-left-color: #ed64a6; }}
@@ -130,6 +132,7 @@ class EmailSender:
             <p>{datetime.now().strftime('%A, %d. %B %Y')}</p>
         </div>
 
+        <!-- RSS NEWS -->
         <div class="section section-news">
             <div class="section-title">📰 News</div>
             <pre>{self._escape(news)}</pre>
@@ -137,6 +140,23 @@ class EmailSender:
 
         <hr class="hr">
 
+        <!-- HACKER NEWS -->
+        <div class="section section-hn">
+            <div class="section-title">🟠 Hacker News</div>
+            <pre>{self._escape(hn)}</pre>
+        </div>
+
+        <hr class="hr">
+
+        <!-- DEV.TO -->
+        <div class="section section-dev">
+            <div class="section-title">👨‍💻 Dev.to</div>
+            <pre>{self._escape(dev)}</pre>
+        </div>
+
+        <hr class="hr">
+
+        <!-- NASA -->
         <div class="section section-nasa">
             <div class="section-title">🚀 NASA</div>
             <pre>{self._escape(nasa)}</pre>
@@ -144,6 +164,7 @@ class EmailSender:
 
         <hr class="hr">
 
+        <!-- SPRICHWORT -->
         <div class="section section-proverb">
             <div class="section-title">📜 Sprichwort des Tages</div>
             <div class="proverb-text">
@@ -153,6 +174,7 @@ class EmailSender:
 
         <hr class="hr">
 
+        <!-- WITZ -->
         <div class="section section-joke">
             <div class="section-title">😂 Witz des Tages</div>
             <div class="joke-text">
@@ -168,7 +190,7 @@ class EmailSender:
 </body>
 </html>"""
     
-    def _build_text(self, news, nasa, proverb, joke):
+    def _build_text(self, news, hn, dev, nasa, proverb, joke):
         return f"""
 ╔══════════════════════════════════════════════════════════╗
 ║                    🧭 DAILY COMPASS                     ║
@@ -177,6 +199,16 @@ class EmailSender:
 
 📰 NEWS
 {news}
+
+─────────────────────────────────────────────────────────
+
+🟠 HACKER NEWS
+{hn}
+
+─────────────────────────────────────────────────────────
+
+👨‍💻 DEV.TO
+{dev}
 
 ─────────────────────────────────────────────────────────
 
@@ -209,13 +241,10 @@ class EmailSender:
             msg["To"] = self.receiver
             msg["Subject"] = subject
             
-            part_text = MIMEText(text_body, "plain")
-            msg.attach(part_text)
+            msg.attach(MIMEText(text_body, "plain", "utf-8"))
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
             
-            part_html = MIMEText(html_body, "html")
-            msg.attach(part_html)
-            
-            server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+            server = smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=30)
             server.starttls()
             server.login(self.sender, self.password)
             server.send_message(msg)

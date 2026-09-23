@@ -1,0 +1,19 @@
+{
+  "name": "api-tester-cli",
+  "version": "1.0.0",
+  "description": "CLI to test API endpoints - reachability, auth requirements, and info",
+  "main": "bin/index.js",
+  "type": "module",
+  "bin": {
+    "apitest": "./bin/index.js"
+  },
+  "scripts": {
+    "start": "node bin/index.js"
+  },
+  "keywords": ["cli", "api", "tester", "health", "auth", "endpoint"],
+  "author": "Onur Kara",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

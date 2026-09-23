@@ -1,2 +1,3 @@
 from .wikipedia_api import WikipediaAPI
-from .email_sender import EmailSender
+from .openlibrary_api import OpenLibraryAPI
+from .duckduckgo_api import DuckDuckGoAPI

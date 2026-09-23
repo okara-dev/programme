@@ -10,7 +10,7 @@ class LLMClient:
         self.primary_model = "qwen/qwen3.8-27b"
         self.fallback_model = "openai/gpt-oss-120b"
     
-    def generate(self, system_prompt, user_prompt, max_tokens=1500, temperature=0.7):
+    def generate(self, system_prompt, user_prompt, max_tokens=1000, temperature=0.7):
         try:
             response = self.client.chat.completions.create(
                 model=self.primary_model,

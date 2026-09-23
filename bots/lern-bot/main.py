@@ -1,150 +1,192 @@
 #!/usr/bin/env python3
 """
 Lern-Bot
-Tägliches Lernthema aus Physik, Biologie oder Psychologie
+Versteht kurze Sätze und antwortet mit APIs
 """
 
 import json
 import sys
 import os
-import random
-from datetime import datetime
+import re
 
-from llm_client import LLMClient
-from apis import WikipediaAPI, EmailSender
+from apis import WikipediaAPI, OpenLibraryAPI, DuckDuckGoAPI
 
 def load_config():
     with open("config.json", "r", encoding="utf-8") as f:
         return json.load(f)
 
-def generate_lernthema(llm, kategorie):
-    """Lässt die KI ein interessantes Unterthema wählen und erklären"""
-    
-    system_prompt = (
-        f"Du bist ein begeisterter {kategorie}-Lehrer. "
-        "Du erklärst komplexe Themen einfach, verständlich und spannend auf Deutsch. "
-        "Du weckst Neugier und Freude am Lernen."
-    )
-    
-    user_prompt = f"""Wähle ein interessantes Unterthema aus dem Bereich {kategorie}.
+def show_help():
+    print("""
+╔══════════════════════════════════════════════════════════════╗
+║                      🎓 LERN-BOT                             ║
+╚══════════════════════════════════════════════════════════════╝
 
-Es soll:
-- Für einen neugierigen Erwachsenen spannend sein
-- Nicht zu speziell, aber auch nicht zu oberflächlich
-- Alltagsbezug haben, wenn möglich
-- In 3-4 Absätzen erklärbar sein
+Schreib kurze Sätze:
 
-Antworte EXAKT in diesem Format:
+  📖 WIKIPEDIA
+     "wiki Einstein"
+     "info Japan"
+     "über Python"
 
-THEMA: [Name des Unterthemas]
+  🎲 ZUFALLSTHEMA
+     "thema physik"
+     "zufall biologie"
+     "random informatik"
 
-ERKLAERUNG:
-[3-4 Absätze einfache Erklärung auf Deutsch]
+  📚 BÜCHER
+     "buch psychologie"
+     "buch informatik"
 
-WIKIPEDIA_SUCHBEGRIFF: [Der beste Suchbegriff für Wikipedia]
+  🔍 WEB-SUCHE
+     "such python tutorial"
+     "google flask"
 
-FUN_FACT: [Ein überraschender Fakt zum Thema]
+  ❓ HILFE
+     "hilfe"
 
-Nur diese Zeilen, keine zusätzlichen Erklärungen."""
+  👋 BEENDEN
+     "exit" oder "tschüss"
+
+╚══════════════════════════════════════════════════════════════╝
+""")
+
+def detect_intent(message):
+    """Erkennt kurze Sätze (max. 3-4 Wörter)"""
+    msg_lower = message.lower().strip()
     
-    response = llm.generate(system_prompt, user_prompt, max_tokens=1500, temperature=0.8)
+    # === BEENDEN ===
+    if any(word in msg_lower for word in ["tschuess", "tschüss", "beenden", "exit", "quit", "ciao"]):
+        return "exit", None
     
-    if not response:
-        return None
+    # === HILFE ===
+    if any(word in msg_lower for word in ["hilfe", "help", "befehle"]):
+        return "help", None
     
-    data = {
-        "thema": "Unbekanntes Thema",
-        "erklaerung": "",
-        "suchbegriff": kategorie,
-        "fun_fact": ""
-    }
+    # === BUCH ===
+    if "buch" in msg_lower:
+        if "psychologie" in msg_lower:
+            return "book", "psychologie"
+        elif "informatik" in msg_lower:
+            return "book", "informatik"
+        return "book", "psychologie"
     
-    for line in response.split("\n"):
-        line = line.strip()
-        if line.startswith("THEMA:"):
-            data["thema"] = line.replace("THEMA:", "").strip()
-        elif line.startswith("WIKIPEDIA_SUCHBEGRIFF:"):
-            data["suchbegriff"] = line.replace("WIKIPEDIA_SUCHBEGRIFF:", "").strip()
-        elif line.startswith("FUN_FACT:"):
-            data["fun_fact"] = line.replace("FUN_FACT:", "").strip()
+    # === WEB-SUCHE ===
+    if any(word in msg_lower for word in ["such", "suche", "google", "web"]):
+        stopwords = ["such", "suche", "im", "web", "nach", "google", "recherchier"]
+        words = [w for w in message.split() if w.lower() not in stopwords]
+        if words:
+            return "search", " ".join(words)
+        return "search", None
     
-    # Mehrzeilige Erklärung sammeln
-    if "ERKLAERUNG:" in response:
-        erklaerung_start = response.find("ERKLAERUNG:") + len("ERKLAERUNG:")
-        erklaerung_ende = response.find("WIKIPEDIA_SUCHBEGRIFF:")
-        if erklaerung_ende > erklaerung_start:
-            data["erklaerung"] = response[erklaerung_start:erklaerung_ende].strip()
+    # === ZUFALLSTHEMA ===
+    if any(word in msg_lower for word in ["zufall", "zufällig", "zufaellig", "random", "thema", "themen"]):
+        kategorien = ["informatik", "physik", "chemie", "biologie", "psychologie"]
+        for kat in kategorien:
+            if kat in msg_lower:
+                return "random", kat
+        return "random", "physik"
     
-    return data
+    # === WIKIPEDIA ===
+    if any(word in msg_lower for word in ["wiki", "wikipedia", "info", "über", "ueber", "erzähl", "erzaehl"]):
+        stopwords = ["wiki", "wikipedia", "info", "über", "ueber", "erzähl", "erzaehl", "mir", "was", "ist", "wer", "war"]
+        words = [w for w in message.split() if w.lower() not in stopwords]
+        if words:
+            return "wiki", " ".join(words)
+        return "wiki", None
+    
+    # === FALLBACK: Wenn nur ein Wort → Wiki ===
+    if len(message.split()) == 1:
+        return "wiki", message
+    
+    return "unknown", None
 
-def run_lern_bot():
+def run_lernbot():
     print("🎓 Lern-Bot wird gestartet...")
-    print(f"📅 {datetime.now().strftime('%A, %d. %B %Y')}")
+    print("-" * 60)
+    print("💬 Schreib 'hilfe' für alle Befehle.")
     print("-" * 60)
     
     config = load_config()
-    themen = config.get("themen", ["Physik", "Biologie", "Psychologie"])
     
-    # Zufällige Kategorie wählen
-    kategorie = random.choice(themen)
-    print(f"📚 Kategorie: {kategorie}")
+    # APIs initialisieren
+    wikipedia = WikipediaAPI(config.get("sprache", "de"))
+    library = OpenLibraryAPI()
+    ddg = DuckDuckGoAPI()
     
-    # LLM initialisieren
-    llm = LLMClient(config["groq_api_key"])
-    
-    # Wikipedia + E-Mail initialisieren
-    wikipedia = WikipediaAPI("de")
-    email = EmailSender(config["email"])
-    
-    # Lernthema generieren
-    print("🧠 Generiere Lernthema...")
-    data = generate_lernthema(llm, kategorie)
-    
-    if not data:
-        print("❌ Kein Thema generiert!")
-        sys.exit(1)
-    
-    print(f"   ✅ Thema: {data['thema']}")
-    
-    # Wikipedia-Artikel holen
-    print("📖 Hole Wikipedia-Artikel...")
-    wiki_data = wikipedia.get_by_topic(kategorie, data["suchbegriff"])
-    
-    if wiki_data:
-        print(f"   ✅ Wikipedia: {wiki_data['title']}")
-    else:
-        print("   ⚠️ Kein Wikipedia-Artikel gefunden")
-    
-    # E-Mail senden
-    print("\n📧 Sende E-Mail...")
-    success = email.send_lernthema(
-        data["thema"],
-        kategorie,
-        data["erklaerung"],
-        wiki_data,
-        data["fun_fact"]
-    )
-    
-    if success:
-        print("✅ Lernthema erfolgreich gesendet!")
-    else:
-        print("❌ Fehler beim Senden!")
-        # Fallback: Konsole
-        print("\n" + "=" * 60)
-        print(f"🎓 {kategorie}: {data['thema']}")
-        print("=" * 60)
-        print(data["erklaerung"])
-        print(f"\n💡 Fun Fact: {data['fun_fact']}")
+    while True:
+        try:
+            message = input("\nDu: ").strip()
+            
+            if not message:
+                continue
+            
+            intent, arg = detect_intent(message)
+            handled = True
+            
+            # === EXIT ===
+            if intent == "exit":
+                print("🎓 Lern-Bot: Bis bald! 👋")
+                break
+            
+            # === HILFE ===
+            elif intent == "help":
+                show_help()
+            
+            # === WIKI ===
+            elif intent == "wiki":
+                if not arg:
+                    print("🎓 Lern-Bot: Was möchtest du wissen?")
+                    handled = False
+                else:
+                    print(f"🎓 Lern-Bot: Ich schaue in Wikipedia nach '{arg}'...")
+                    data = wikipedia.get_summary(arg)
+                    print(wikipedia.format(data))
+            
+            # === ZUFALL ===
+            elif intent == "random":
+                print(f"🎓 Lern-Bot: Ich suche ein zufälliges Thema aus '{arg}'...")
+                data = wikipedia.get_random_topic(arg)
+                print(wikipedia.format(data))
+            
+            # === BUCH ===
+            elif intent == "book":
+                print(f"🎓 Lern-Bot: Ich suche Bücher zu '{arg}'...")
+                books = library.search_books(arg)
+                print(library.format(books, arg))
+            
+            # === SUCH ===
+            elif intent == "search":
+                if not arg:
+                    print("🎓 Lern-Bot: Was soll ich suchen?")
+                    handled = False
+                else:
+                    print(f"🎓 Lern-Bot: Ich suche im Web nach '{arg}'...")
+                    results = ddg.search(arg)
+                    print(ddg.format(results, arg))
+            
+            # === UNBEKANNT ===
+            else:
+                print("🎓 Lern-Bot: Das habe ich nicht verstanden. 🤔")
+                print("   Schreib 'hilfe', um zu sehen, was ich kann.")
+                handled = False
+            
+            # === NACH JEDER AUSGABE ===
+            if handled and intent not in ["help", "exit"]:
+                print("\n🎓 Lern-Bot: Viel Spaß beim Lernen :)")
+                print("🎓 Lern-Bot: Kann ich noch was vorschlagen?")
+        
+        except KeyboardInterrupt:
+            print("\n\n🎓 Lern-Bot: Bis bald! 👋")
+            break
+        except Exception as e:
+            print(f"🎓 Lern-Bot: Ups, ein Fehler ist aufgetreten: {e}")
 
 def main():
     if not os.path.exists("config.json"):
         print("❌ config.json nicht gefunden!")
         sys.exit(1)
     
-    run_lern_bot()
-    
-    if "--no-pause" not in sys.argv:
-        input("\nDrücke Enter zum Beenden...")
+    run_lernbot()
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Daily Compass – Dein täglicher Begleiter mit News, NASA, Sprichwörtern & Witz
+Daily Compass – Erweitert mit Hacker News, Dev.to und DeepL
 """
 
 import json
@@ -9,9 +9,12 @@ import os
 from datetime import datetime
 
 from apis.rss_news import RSSNews
+from apis.hackernews_api import HackerNewsAPI
+from apis.devto_api import DevToAPI
 from apis.nasa_api import NASAAPI
 from apis.proverbs_api import ProverbsAPI
 from apis.joke_api import JokeAPI
+from apis.translator import init_translator
 from apis.email_sender import EmailSender
 
 def load_config():
@@ -24,45 +27,57 @@ def run_compass():
     print("-" * 40)
     
     config = load_config()
-    keys = config["api_keys"]
+    
+    # DeepL Translator ZUERST initialisieren (global für alle Module)
+    init_translator(config["deepl_api_key"])
     
     # APIs initialisieren
     news = RSSNews()
-    nasa = NASAAPI(keys["nasa_api"])
+    hackernews = HackerNewsAPI()
+    devto = DevToAPI()
+    nasa = NASAAPI(config["api_keys"]["nasa_api"])
     proverbs = ProverbsAPI()
     joke = JokeAPI()
+    
     email = EmailSender(config["email"])
     
     print("📡 Rufe Daten von APIs ab...")
     
-    # 1. News
-    print("  📰 News (RSS)...")
-    articles = news.get_headlines(max_articles=5)
-    news_content = news.format(articles)
+    # 1. RSS News
+    print("  📰 RSS News...")
+    articles = news.get_headlines(max_articles=3)
+    rss_content = news.format(articles)
     
-    # 2. NASA
+    # 2. Hacker News
+    print("  🟠 Hacker News...")
+    hn_stories = hackernews.get_top_stories(limit=5)
+    hn_content = hackernews.format(hn_stories)
+    
+    # 3. Dev.to
+    print("  👨‍💻 Dev.to...")
+    dev_articles = devto.get_top_articles(limit=5)
+    dev_content = devto.format(dev_articles)
+    
+    # 4. NASA
     print("  🚀 NASA...")
     nasa_data = nasa.get_apod()
-    if nasa_data:
-        nasa_content = nasa.format(nasa_data)
-    else:
-        nasa_content = "🚀 NASA-Bild nicht verfügbar"
+    nasa_content = nasa.format(nasa_data) if nasa_data else "🚀 NASA nicht verfügbar"
     
-    # 3. Sprichwort
+    # 5. Sprichwort
     print("  📜 Sprichwort...")
     proverb_data = proverbs.get_proverb()
-    proverb_content = proverbs.format(proverb_data) if proverb_data else "📜 Kein Sprichwort verfügbar"
+    proverb_content = proverbs.format(proverb_data) if proverb_data else "📜 Kein Sprichwort"
     
-    # 4. Witz
+    # 6. Witz
     print("  😂 Witz...")
     joke_data = joke.get_joke()
-    joke_content = joke.format(joke_data) if joke_data else "😂 Kein Witz verfügbar"
+    joke_content = joke.format(joke_data) if joke_data else "😂 Kein Witz"
     
     # E-Mail senden
     print("\n📧 Sende E-Mail...")
     success = email.send_daily_compass(
-        news_content, nasa_content,
-        proverb_content, joke_content
+        rss_content, hn_content, dev_content,
+        nasa_content, proverb_content, joke_content
     )
     
     if success:
@@ -73,7 +88,6 @@ def run_compass():
 def main():
     if not os.path.exists("config.json"):
         print("❌ config.json nicht gefunden!")
-        print("   Erstelle eine config.json mit deinen Einstellungen.")
         sys.exit(1)
     
     run_compass()
