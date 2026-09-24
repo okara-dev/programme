@@ -1,22 +1,24 @@
-# Snack Bot
+# Snack-Bot
 
-## What It Is
+## Zweck
 
-Snack Bot is an interactive German-language recipe assistant. It turns ingredients entered in the terminal into a quick mini-snack suggestion and stores optional ratings locally.
+Snack-Bot ist ein interaktiver deutschsprachiger Lebensmittel- und Rezeptassistent. Er kann KI-Snacks aus Zutaten erzeugen, Rezepte und Cocktails suchen und Produktnaehrwerte anzeigen.
 
-## Features
+## Befehle
 
-- Generate a snack from user-provided ingredients with an LLM.
-- Request a creative name, ingredient list, preparation steps, taste description, and tip.
-- Limit the generated recipe to a quick preparation workflow.
-- Rate suggestions from 1 to 10 or skip rating.
-- Persist snack history in `rating.json`.
-- Show total snacks, average score, top-rated snacks, and recent entries.
-- Run `stats`, `exit`, or `quit` from the input prompt.
+- `snack haferflocken, banane, honig`: KI erzeugt einen schnellen Mini-Snack mit Zutaten, Zubereitung, Geschmack und Tipp.
+- `rezept pizza` oder `zufall rezept`: Rezept aus TheMealDB.
+- `cocktail mojito` oder `zufall cocktail`: Cocktail aus TheCocktailDB.
+- `produkt nutella`: Produkt- und Naehrwertsuche ueber Open Food Facts.
+- `stats`: gespeicherte Snack-Bewertungen anzeigen.
+- `hilfe`: Befehlsuebersicht.
+- `exit`, `quit` oder `beenden`: Bot beenden.
 
-## Usage
+Nach jedem generierten KI-Snack kann eine Bewertung von 1 bis 10 gespeichert oder mit `s` uebersprungen werden.
 
-Requirements: Python 3.10+ and a Groq API key.
+## Installation und Start
+
+Voraussetzungen: Python 3.10+, Internetzugang und ein Groq-API-Schluessel.
 
 ```powershell
 python -m venv .venv
@@ -25,27 +27,24 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
-Create a local `config.json` containing `groq_api_key` and an optional display name. Enter ingredients such as `oats, banana, honey, nuts`, enter `stats` for rating history, or enter `exit` to quit.
+Unter Windows kann `snackBot.bat` verwendet werden. Lege eine lokale `config.json` mit `groq_api_key` an:
 
-## Technology
+```json
+{
+	"groq_api_key": "..."
+}
+```
 
-- Python 3.10+
-- `groq` for language-model generation
-- JSON files for local rating persistence
-- No email delivery component
+## Lokale Daten und Dienste
 
-## Privacy and Safety
+- `rating.json` speichert Snack-Eingaben, generierte Daten und Bewertungen.
+- `groq` generiert KI-Snacks mit einem automatischen Modell-Fallback.
+- TheMealDB liefert Rezepte.
+- TheCocktailDB liefert Cocktails.
+- Open Food Facts liefert Produkt- und Naehrwertdaten.
 
-Ingredient input is sent to Groq to generate the suggestion. Ratings, ingredient input, and generated recipe fields are stored locally in `rating.json`. Do not enter sensitive personal information. AI recipes can be inaccurate or unsuitable for allergies, dietary restrictions, children, or medical conditions; verify ingredients and preparation before eating.
+Zutaten und Suchbegriffe werden an externe Dienste gesendet. `rating.json` kann persoenliche Eingaben enthalten und sollte nicht veroeffentlicht werden. KI-Vorschlaege, Allergene und Naehrwerte vor der Verwendung pruefen.
 
-## Distribution
+## Lizenz und Status
 
-Snack Bot is distributed as a paid digital product through Gumroad. The product page may contain the current package, releases, and commercial purchase terms. Groq access may require a separate account.
-
-## License
-
-No license is currently specified for this project. Obtain permission before redistributing or commercially reusing the source outside the applicable Gumroad terms.
-
-## Status
-
-Version is not declared. The tool is a creative suggestion generator, not a nutrition or food-safety authority.
+Eine Lizenz ist derzeit nicht festgelegt. Der Bot ist ein kreativer Assistent und keine medizinische oder lebensmittelrechtliche Beratung.

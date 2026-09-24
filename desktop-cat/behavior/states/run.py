@@ -1,13 +1,13 @@
+import random
 from behavior.state import State
 from core.config import RUN_DURATION, CAT_RUN_SPEED
-import random
 
 
 class RunState(State):
     name = "run"
 
-    # Zufällige Aktion nach dem Rennen
-    ACTIONS = ["lick", "sleep", "stretch", "itch", "meow"]
+    # sleep ist NICHT dabei — schlafen nur bei Müdigkeit
+    ACTIONS = ["lick", "stretch", "itch", "meow"]
 
     def enter(self):
         self.cat.sprite.play("run")

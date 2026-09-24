@@ -4,6 +4,7 @@ Sprichwörter-API – mit zuverlässiger Quote API
 
 import random
 import requests
+from .translator import translate_text
 
 class ProverbsAPI:
     def __init__(self):
@@ -58,7 +59,7 @@ class ProverbsAPI:
         if not data:
             return "📜 Kein Sprichwort verfügbar."
         
-        proverb = data.get("proverb", "Kein Sprichwort")
+        proverb = translate_text(data.get("proverb", "Kein Sprichwort"))
         meaning = data.get("meaning", "Keine Bedeutung")
         language = data.get("language", "Unbekannt")
         

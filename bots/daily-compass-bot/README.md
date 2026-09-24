@@ -1,21 +1,23 @@
 # Daily Compass Bot
 
-## What It Is
+## Zweck
 
-Daily Compass is a Python newsletter bot that builds a compact daily briefing and sends it by email in both HTML and plain-text formats.
+Daily Compass erstellt eine taegliche Nachricht mit Nachrichten, Technik-News, NASA-Inhalten, einem Sprichwort und einem Witz. Die Nachricht wird als HTML- und Plain-Text-E-Mail versendet.
 
-## Features
+## Inhalte
 
-- Collect headlines from configured RSS feeds.
-- Fetch NASA's Astronomy Picture of the Day.
-- Add a proverb or fact and a joke, with local fallback content where supported.
-- Send one formatted message through an SMTP server.
-- Continue with fallback content when selected external services are unavailable.
-- Run interactively or without the final pause for scheduled jobs.
+- RSS-Schlagzeilen aus Tagesschau und Spiegel.
+- Top-Stories von Hacker News.
+- Beliebte Artikel von Dev.to.
+- NASA Astronomy Picture of the Day.
+- Ein Zitat aus DummyJSON oder ein lokales Sprichwort als Fallback.
+- Ein Witz aus JokeAPI oder ein lokaler deutscher Fallback.
+- Automatische Uebersetzung der NASA-Texte, Sprichwoerter und Witze mit DeepL.
+- API- und Fallback-Fehler werden abgefangen, damit die Zusammenstellung weiterlaufen kann.
 
-## Usage
+## Installation und Start
 
-Requirements: Python 3.10+, internet access, and an SMTP account.
+Voraussetzungen: Python 3.10+, Internetzugang, ein DeepL-API-Schluessel, ein NASA-API-Schluessel und ein SMTP-Konto.
 
 ```powershell
 python -m venv .venv
@@ -25,27 +27,35 @@ python main.py
 python main.py --no-pause
 ```
 
-Create a local `config.json` with API keys, SMTP sender/receiver settings, and server details. Never publish that file. On Windows, `start_compass.bat` can be used after checking its working-directory and interpreter settings. For daily delivery, schedule `main.py --no-pause` with Windows Task Scheduler.
+`--no-pause` beendet den Prozess ohne abschliessende Eingabeaufforderung und eignet sich fuer geplante Jobs. Unter Windows kann `start_compass.bat` verwendet werden.
 
-## Technology
+## Konfiguration
 
-- Python 3.10+
-- `requests`, `feedparser`, and `deep-translator`
-- NASA and RSS integrations
-- SMTP with STARTTLS for email delivery
+Lege im Bot-Verzeichnis eine lokale `config.json` mit dieser Struktur an:
 
-## Privacy and Safety
+```json
+{
+	"api_keys": {"nasa_api": "..."},
+	"deepl_api_key": "...",
+	"email": {
+		"sender": "...",
+		"password": "...",
+		"receiver": "...",
+		"smtp_server": "smtp.gmail.com",
+		"smtp_port": 587
+	}
+}
+```
 
-The bot sends collected content and generated email data through the configured external services and SMTP provider. The configured recipient receives the briefing. API keys, SMTP passwords, email addresses, and generated content must be treated as private. Use an app password where supported, keep `config.json` out of version control, and rotate credentials if exposed.
+API-Schluessel, SMTP-Passwoerter und E-Mail-Adressen gehoeren nicht in die Versionsverwaltung. Bei Gmail sollte ein App-Passwort verwendet werden.
 
-## Distribution
+## Abhaengigkeiten
 
-Daily Compass Bot is distributed as a paid digital product through Gumroad. The product page may contain the current package, releases, and commercial purchase terms. External API accounts and email service access may be required separately.
+- `requests` fuer NASA, Hacker News, Dev.to, Zitate und Witze
+- `feedparser` fuer RSS-Feeds
+- `deepl` fuer die Uebersetzung
+- SMTP mit STARTTLS fuer den Versand
 
-## License
+## Lizenz und Status
 
-No license is currently specified for this project. Do not redistribute or modify it commercially without obtaining permission or adding clear licensing terms.
-
-## Status
-
-Current version is an automation script. Settings such as content toggles are present in the configuration schema but are not all enforced by the current `main.py` implementation.
+Eine Lizenz ist derzeit nicht festgelegt. Der Bot ist ein lokales Automatisierungsskript; externe APIs koennen ausfallen oder ihre Antworten aendern.

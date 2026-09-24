@@ -15,10 +15,14 @@ SPRITE_SCALE = 2
 WALK_DURATION = 5.0
 SIT_DURATION = 3.0
 RUN_DURATION = 3.0
-SLEEP_DURATION = 8.0
 LICK_DURATION = 4.0
 STRETCH_DURATION = 4.0
 ITCH_DURATION = 2.0
 MEOW_DURATION = 2.0
+
+# Interaktion
+STOP_DISTANCE = 60          # px — Maus gilt als "auf Katze", wenn näher
+TIRED_AFTER = 60.0          # Sekunden ohne Interaktion → schlafen
+STROKE_COOLDOWN = 2.0       # Sekunden Cooldown nach Streicheln
 
 DEBUG = False

@@ -1,5 +1,6 @@
 import requests
 import random
+from .translator import translate_text
 
 class JokeAPI:
     def __init__(self):
@@ -26,7 +27,6 @@ class JokeAPI:
             if data.get("error"):
                 return self._get_fallback_joke()
             
-            # KEINE Übersetzung – Witz bleibt auf Englisch
             return data
             
         except Exception as e:
@@ -43,7 +43,7 @@ class JokeAPI:
         if not data:
             return "😂 Kein Witz verfügbar."
         
-        joke = data.get("joke", "Kein Witz")
+        joke = translate_text(data.get("joke", "Kein Witz"))
         category = data.get("category", "Unbekannt")
         
         category_map = {

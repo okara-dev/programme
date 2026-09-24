@@ -11,5 +11,5 @@ class MeowState(State):
 
     def next_state(self):
         if self.time_in_state >= MEOW_DURATION:
-            return "walk"
+            return "sit"
         return None

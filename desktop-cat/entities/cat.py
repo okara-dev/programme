@@ -1,4 +1,8 @@
-from core.config import CAT_WIDTH, CAT_HEIGHT, SPRITE_FPS, DEBUG
+from PyQt5.QtGui import QCursor
+from core.config import (
+    CAT_WIDTH, CAT_HEIGHT, SPRITE_FPS, DEBUG,
+    TIRED_AFTER, STOP_DISTANCE, STROKE_COOLDOWN,
+)
 from core.vector import Vector2
 from physics.collision import Physics
 from render.sprite import Sprite
@@ -44,6 +48,10 @@ class Cat:
 
         self.facing = 1
 
+        # Interaktions-Timer
+        self.time_since_interaction = 0.0
+        self.stroke_cooldown = 0.0
+
         self.machine = StateMachine(
             self,
             {
@@ -69,10 +77,44 @@ class Cat:
     def velocity(self):
         return self.body.velocity
 
+    def mouse_on_cat(self) -> bool:
+        mouse = QCursor.pos()
+        mx, my = mouse.x(), mouse.y()
+        cx = self.position.x + self.body.width / 2
+        cy = self.position.y + self.body.height / 2
+        dx = mx - cx
+        dy = my - cy
+        return (dx * dx + dy * dy) ** 0.5 < STOP_DISTANCE
+
+    def notify_interaction(self):
+        self.time_since_interaction = 0.0
+
     def update(self, dt):
         self.physics.apply_gravity(self.body, dt)
         self.physics.integrate(self.body, dt)
         self.physics.resolve_ground(self.body)
+
+        self.time_since_interaction += dt
+        if self.stroke_cooldown > 0:
+            self.stroke_cooldown -= dt
+
+        current = self.machine.current.name
+
+        # --- Maus auf Katze → streicheln / aufwecken ---
+        if self.mouse_on_cat() and self.stroke_cooldown <= 0:
+            if current == "sleep":
+                self.machine.transition("sit")
+                self.stroke_cooldown = 2.0
+                self.notify_interaction()
+            elif current not in ("sit", "meow"):
+                self.machine.transition("sit")
+                self.stroke_cooldown = 2.0
+                self.notify_interaction()
+
+        # --- Müde werden → schlafen ---
+        if current != "sleep" and self.time_since_interaction > TIRED_AFTER:
+            self.machine.transition("sleep")
+            self.time_since_interaction = 0.0
 
         self.machine.update(dt)
         self.sprite.update(dt)
@@ -82,6 +124,7 @@ class Cat:
             if self._debug_timer >= 0.5:
                 self._debug_timer = 0.0
                 print(
-                    f"[{self.machine.current.name:7s}] "
-                    f"pos=({self.position.x:7.0f},{self.position.y:7.0f})"
+                    f"[{current:7s}] "
+                    f"pos=({self.position.x:7.0f},{self.position.y:7.0f}) "
+                    f"tired={self.time_since_interaction:5.1f}"
                 )

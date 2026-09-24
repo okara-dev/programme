@@ -1,5 +1,4 @@
 from behavior.state import State
-from core.config import SLEEP_DURATION
 
 
 class SleepState(State):
@@ -10,6 +9,5 @@ class SleepState(State):
         self.cat.body.velocity.x = 0.0
 
     def next_state(self):
-        if self.time_in_state >= SLEEP_DURATION:
-            return "walk"
+        # Kein Timer — bleibt schlafen bis Maus-Berührung (siehe cat.py)
         return None

@@ -1,22 +1,21 @@
-# Sprachlehrer Bot
+# Sprachlehrer-Bot
 
-## What It Is
+## Zweck
 
-Sprachlehrer Bot is a daily Spanish vocabulary and grammar assistant for German-speaking learners. It generates 20 new words, adds example sentences, selects a grammar topic, and sends the lesson by email.
+Der Sprachlehrer-Bot erstellt eine taegliche Spanisch-Lektion fuer deutschsprachige Lernende. Er generiert neue Vokabeln und ein Grammatikthema, mischt lokale Lerninhalte dazu und versendet die Lektion per E-Mail.
 
-## Features
+## Funktionen
 
-- Configure language and level, currently designed for Spanish and levels such as A1-A2.
-- Generate 20 practical vocabulary items with translations and examples.
-- Avoid repeating words found in the local vocabulary data.
-- Generate a grammar explanation, example, and common learner error.
-- Combine generated content with local grammar and vocabulary files.
-- Send HTML and plain-text email lessons.
-- Fall back to console output when email delivery fails.
+- Generiert 20 neue Vokabeln mit spanischem Wort, deutscher Uebersetzung und Beispielsatz.
+- Beruecksichtigt bekannte Vokabeln aus `basis_vokabeln.json`, damit sie nicht erneut vorgeschlagen werden.
+- Generiert ein Grammatikthema mit Erklaerung, Beispiel und typischem Fehler.
+- Fuegt das KI-Thema und bis zu zwei lokale Grammatikthemen zusammen.
+- Versendet HTML- und Plain-Text-Versionen.
+- Gibt die Vokabeln in der Konsole aus, wenn der E-Mail-Versand fehlschlaegt.
 
-## Usage
+## Installation und Start
 
-Requirements: Python 3.10+, a Groq API key, internet access, and an SMTP account.
+Voraussetzungen: Python 3.10+, Internetzugang, ein Groq-API-Schluessel und ein SMTP-Konto.
 
 ```powershell
 python -m venv .venv
@@ -26,27 +25,35 @@ python main.py
 python main.py --no-pause
 ```
 
-Keep `config.json`, `grammatik.json`, and `basis_vokabeln.json` in the bot directory. Configure `groq_api_key`, `sprache`, `level`, and SMTP settings. On Windows, `start_lehrer.bat` can be used after checking its environment.
+`--no-pause` ueberspringt die abschliessende Eingabeaufforderung. Unter Windows kann `start_lehrer.bat` verwendet werden.
 
-## Technology
+## Dateien und Konfiguration
 
-- Python 3.10+
-- `groq` for language-model generation
-- JSON files for local vocabulary and grammar data
-- SMTP with STARTTLS
+`config.json`, `grammatik.json` und `basis_vokabeln.json` muessen im Bot-Verzeichnis liegen. Die Konfiguration benoetigt mindestens:
 
-## Privacy and Safety
+```json
+{
+	"groq_api_key": "...",
+	"sprache": "Spanisch",
+	"level": "A1-A2",
+	"email": {
+		"sender": "...",
+		"password": "...",
+		"receiver": "...",
+		"smtp_server": "smtp.gmail.com",
+		"smtp_port": 587
+	}
+}
+```
 
-Learning prompts and configured language settings are sent to Groq. Generated lessons are sent through the configured SMTP provider. Keep API keys, SMTP passwords, recipient addresses, and learner data private. AI-generated translations and grammar explanations should be checked against a trusted source.
+Die lokalen JSON-Dateien liefern Grammatik und Basisvokabeln. API-Schluessel, SMTP-Passwoerter, E-Mail-Adressen und Lerndaten muessen privat bleiben.
 
-## Distribution
+## Abhaengigkeiten und Status
 
-Sprachlehrer Bot is distributed as a paid digital product through Gumroad. The product page may contain the current package, releases, and commercial purchase terms. Groq and email access may require separate accounts.
+- `groq` mit einem automatischen Modell-Fallback
+- SMTP mit STARTTLS
+- Lokale JSON-Dateien fuer Lerninhalte
 
-## License
+Die aktuellen Daten sind auf Spanisch mit dem Niveau `A1-A2` ausgerichtet. KI-Uebersetzungen und Grammatikangaben sollten geprueft werden.
 
-No license is currently specified for this project. Obtain permission before redistributing or commercially reusing the source outside the applicable Gumroad terms.
-
-## Status
-
-Version is not declared. The current implementation is tailored to Spanish vocabulary and grammar workflows.
+Eine Lizenz ist derzeit nicht festgelegt.
